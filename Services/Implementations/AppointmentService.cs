@@ -6,6 +6,27 @@ namespace SchiperkeWebApp.Services.Implementations;
 
 public class AppointmentService : IAppointmentService
 {
+    private static readonly string[] AllowedServiceTypes =
+    [
+        "Consultation",
+        "Vaccination",
+        "Deworming",
+        "Internal Antiparasitic",
+        "External Antiparasitic",
+        "General Wellness"
+    ];
+
+    private static readonly string[] AllowedStatuses =
+    [
+        "Pending",
+        "Confirmed",
+        "Completed",
+        "Cancelled",
+        "No-Show"
+    ];
+
+    private static readonly TimeOnly[] AllowedAppointmentTimes = BuildAllowedAppointmentTimes();
+
     private readonly IAppointmentRepository _appointmentRepository;
     private readonly IPetRepository _petRepository;
     private readonly IUserRepository _userRepository;
@@ -18,6 +39,21 @@ public class AppointmentService : IAppointmentService
         _appointmentRepository = appointmentRepository;
         _petRepository = petRepository;
         _userRepository = userRepository;
+    }
+
+    public IReadOnlyList<string> GetAllowedServiceTypes()
+    {
+        return AllowedServiceTypes;
+    }
+
+    public IReadOnlyList<string> GetAllowedStatuses()
+    {
+        return AllowedStatuses;
+    }
+
+    public IReadOnlyList<TimeOnly> GetAllowedAppointmentTimes()
+    {
+        return AllowedAppointmentTimes;
     }
 
     public async Task<List<Appointment>> GetAllAsync()
@@ -47,26 +83,33 @@ public class AppointmentService : IAppointmentService
             throw new ArgumentException("Status is required.");
         }
 
-        return await _appointmentRepository.GetByStatusAsync(status.Trim());
+        var normalizedStatus = NormalizeAllowedValue(status, AllowedStatuses, "Status");
+        return await _appointmentRepository.GetByStatusAsync(normalizedStatus);
     }
 
     public async Task CreateAsync(Appointment appointment)
     {
         await ValidateAppointmentAsync(appointment);
 
-        appointment.ServiceType = appointment.ServiceType.Trim();
-        appointment.ReasonForVisit = string.IsNullOrWhiteSpace(appointment.ReasonForVisit)
-            ? null
-            : appointment.ReasonForVisit.Trim();
-        appointment.Remarks = string.IsNullOrWhiteSpace(appointment.Remarks)
-            ? null
-            : appointment.Remarks.Trim();
-        appointment.Status = string.IsNullOrWhiteSpace(appointment.Status)
-            ? "Pending"
-            : appointment.Status.Trim();
+        NormalizeAppointment(appointment);
+
+        if (appointment.CreatedAt == default)
+        {
+            appointment.CreatedAt = DateTime.Now;
+        }
+
+        appointment.UpdatedAt = DateTime.Now;
+        appointment.IsDeleted = false;
 
         await _appointmentRepository.AddAsync(appointment);
         await _appointmentRepository.SaveAsync();
+
+        if (string.IsNullOrWhiteSpace(appointment.AppointmentCode))
+        {
+            appointment.AppointmentCode = BuildAppointmentCode(appointment);
+            _appointmentRepository.Update(appointment);
+            await _appointmentRepository.SaveAsync();
+        }
     }
 
     public async Task UpdateAsync(Appointment appointment)
@@ -79,20 +122,31 @@ public class AppointmentService : IAppointmentService
 
         await ValidateAppointmentAsync(appointment);
 
-        appointment.ServiceType = appointment.ServiceType.Trim();
-        appointment.ReasonForVisit = string.IsNullOrWhiteSpace(appointment.ReasonForVisit)
-            ? null
-            : appointment.ReasonForVisit.Trim();
-        appointment.Remarks = string.IsNullOrWhiteSpace(appointment.Remarks)
-            ? null
-            : appointment.Remarks.Trim();
-        appointment.Status = string.IsNullOrWhiteSpace(appointment.Status)
-            ? existingAppointment.Status
-            : appointment.Status.Trim();
-        appointment.CreatedAt = existingAppointment.CreatedAt;
-        appointment.IsDeleted = existingAppointment.IsDeleted;
+        NormalizeAppointment(appointment);
 
-        _appointmentRepository.Update(appointment);
+        existingAppointment.PetId = appointment.PetId;
+        existingAppointment.AppointmentCode = string.IsNullOrWhiteSpace(existingAppointment.AppointmentCode)
+            ? BuildAppointmentCode(existingAppointment)
+            : existingAppointment.AppointmentCode;
+        existingAppointment.IsExistingPatient = appointment.IsExistingPatient;
+        existingAppointment.PatientNoInput = appointment.PatientNoInput;
+        existingAppointment.PetName = appointment.PetName;
+        existingAppointment.Species = appointment.Species;
+        existingAppointment.Breed = appointment.Breed;
+        existingAppointment.Sex = appointment.Sex;
+        existingAppointment.Color = appointment.Color;
+        existingAppointment.AppointmentDate = appointment.AppointmentDate;
+        existingAppointment.AppointmentTime = appointment.AppointmentTime;
+        existingAppointment.ServiceType = appointment.ServiceType;
+        existingAppointment.ReasonForVisit = appointment.ReasonForVisit;
+        existingAppointment.Status = string.IsNullOrWhiteSpace(appointment.Status)
+            ? existingAppointment.Status
+            : appointment.Status;
+        existingAppointment.Remarks = appointment.Remarks;
+        existingAppointment.CreatedByUserId = appointment.CreatedByUserId ?? existingAppointment.CreatedByUserId;
+        existingAppointment.UpdatedAt = DateTime.Now;
+
+        _appointmentRepository.Update(existingAppointment);
         await _appointmentRepository.SaveAsync();
     }
 
@@ -111,6 +165,21 @@ public class AppointmentService : IAppointmentService
 
     private async Task ValidateAppointmentAsync(Appointment appointment)
     {
+        if (string.IsNullOrWhiteSpace(appointment.PetName))
+        {
+            throw new ArgumentException("Pet name is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(appointment.Species))
+        {
+            throw new ArgumentException("Species is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(appointment.Sex))
+        {
+            throw new ArgumentException("Sex is required.");
+        }
+
         if (string.IsNullOrWhiteSpace(appointment.ServiceType))
         {
             throw new ArgumentException("Service type is required.");
@@ -121,16 +190,100 @@ public class AppointmentService : IAppointmentService
             throw new ArgumentException("Appointment date is required.");
         }
 
-        var pet = await _petRepository.GetByIdAsync(appointment.PetId);
-        if (pet is null)
+        if (appointment.AppointmentTime == default)
         {
-            throw new InvalidOperationException("Appointment must reference an active pet.");
+            throw new ArgumentException("Appointment time is required.");
         }
 
-        var user = await _userRepository.GetByIdAsync(appointment.CreatedByUserId);
-        if (user is null)
+        if (!AllowedAppointmentTimes.Contains(appointment.AppointmentTime))
         {
-            throw new InvalidOperationException("Appointment must reference an active user.");
+            throw new ArgumentException("Appointment time must use a 15-minute clinic interval.");
         }
+
+        _ = NormalizeAllowedValue(appointment.ServiceType, AllowedServiceTypes, "Service type");
+
+        if (!string.IsNullOrWhiteSpace(appointment.Status))
+        {
+            _ = NormalizeAllowedValue(appointment.Status, AllowedStatuses, "Status");
+        }
+
+        if (appointment.PetId.HasValue)
+        {
+            var pet = await _petRepository.GetByIdAsync(appointment.PetId.Value);
+            if (pet is null)
+            {
+                throw new InvalidOperationException("Linked pet record was not found.");
+            }
+        }
+
+        if (appointment.CreatedByUserId.HasValue)
+        {
+            var user = await _userRepository.GetByIdAsync(appointment.CreatedByUserId.Value);
+            if (user is null)
+            {
+                throw new InvalidOperationException("Linked clinic user was not found.");
+            }
+        }
+    }
+
+    private static void NormalizeAppointment(Appointment appointment)
+    {
+        appointment.ServiceType = NormalizeAllowedValue(appointment.ServiceType, AllowedServiceTypes, "Service type");
+        appointment.Status = string.IsNullOrWhiteSpace(appointment.Status)
+            ? "Pending"
+            : NormalizeAllowedValue(appointment.Status, AllowedStatuses, "Status");
+
+        appointment.PatientNoInput = appointment.IsExistingPatient
+            ? NormalizeOptionalText(appointment.PatientNoInput)
+            : null;
+        appointment.PetName = NormalizeRequiredText(appointment.PetName);
+        appointment.Species = NormalizeRequiredText(appointment.Species);
+        appointment.Breed = NormalizeOptionalText(appointment.Breed);
+        appointment.Sex = NormalizeRequiredText(appointment.Sex);
+        appointment.Color = NormalizeOptionalText(appointment.Color);
+        appointment.ReasonForVisit = NormalizeOptionalText(appointment.ReasonForVisit);
+        appointment.Remarks = NormalizeOptionalText(appointment.Remarks);
+    }
+
+    private static string NormalizeRequiredText(string? rawValue)
+    {
+        return rawValue?.Trim() ?? string.Empty;
+    }
+
+    private static string? NormalizeOptionalText(string? rawValue)
+    {
+        return string.IsNullOrWhiteSpace(rawValue) ? null : rawValue.Trim();
+    }
+
+    private static string NormalizeAllowedValue(string rawValue, IEnumerable<string> allowedValues, string fieldName)
+    {
+        var value = rawValue.Trim();
+        var normalizedValue = allowedValues.FirstOrDefault(item => item.Equals(value, StringComparison.OrdinalIgnoreCase));
+        if (normalizedValue is null)
+        {
+            throw new ArgumentException($"{fieldName} must be one of the allowed values.");
+        }
+
+        return normalizedValue;
+    }
+
+    private static string BuildAppointmentCode(Appointment appointment)
+    {
+        var year = appointment.CreatedAt == default ? DateTime.Now.Year : appointment.CreatedAt.Year;
+        return $"APT-{year}-{appointment.AppointmentId:0000}";
+    }
+
+    private static TimeOnly[] BuildAllowedAppointmentTimes()
+    {
+        var start = new TimeOnly(8, 0);
+        var end = new TimeOnly(17, 0);
+        var values = new List<TimeOnly>();
+
+        for (var time = start; time <= end; time = time.AddMinutes(15))
+        {
+            values.Add(time);
+        }
+
+        return values.ToArray();
     }
 }

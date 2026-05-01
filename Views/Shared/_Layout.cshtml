@@ -1,47 +1,124 @@
-﻿<!DOCTYPE html>
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var isHome = currentController == "Home" && currentAction == "Index";
+    var isContact = currentController == "Home" && currentAction == "Contact";
+    var isPublicBooking = currentController == "Appointments" && currentAction == "Book";
+    var isStaffAppointments = currentController == "Appointments" && currentAction != "Book" && currentAction != "Confirmation";
+}
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - SchiperkeWebApp</title>
+    <title>@ViewData["Title"] - Schiperke Veterinary Clinic</title>
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/SchiperkeWebApp.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">SchiperkeWebApp</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+    <header class="app-header">
+        <nav class="navbar navbar-expand-lg app-navbar">
+            <div class="container-fluid app-nav-container">
+                <a class="navbar-brand app-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                    <span class="brand-mark" aria-hidden="true">
+                        <span class="paw-toe toe-one"></span>
+                        <span class="paw-toe toe-two"></span>
+                        <span class="paw-toe toe-three"></span>
+                        <span class="paw-pad"></span>
+                    </span>
+                    <span>
+                        <span class="brand-name">Schiperke</span>
+                        <span class="brand-subtitle">Veterinary Clinic</span>
+                    </span>
+                </a>
+                <button class="navbar-toggler app-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavigation" aria-controls="mainNavigation"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
+                <div id="mainNavigation" class="navbar-collapse collapse">
+                    <ul class="navbar-nav app-nav-links">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                            <a class="nav-link @(isHome ? "active" : "")" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                            <a class="nav-link nav-cta @(isPublicBooking ? "active" : "")" asp-area="" asp-controller="Appointments" asp-action="Book">Book Appointment</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(isContact ? "active" : "")" asp-area="" asp-controller="Home" asp-action="Contact">Contact</a>
+                        </li>
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(currentController == "Dashboard" ? "active" : "")" asp-area="" asp-controller="Dashboard" asp-action="Index">Dashboard</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @(isStaffAppointments ? "active" : "")" asp-area="" asp-controller="Appointments" asp-action="Index">Appointments</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @(currentController == "Pets" ? "active" : "")" asp-area="" asp-controller="Pets" asp-action="Index">Patients</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @(currentController == "Users" ? "active" : "")" asp-area="" asp-controller="Users" asp-action="Index">Users</a>
+                            </li>
+                        }
                     </ul>
+                    <div class="app-user-area">
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <div class="signed-in-chip">
+                                <span class="status-dot"></span>
+                                <span>@User.Identity.Name</span>
+                            </div>
+                            <form asp-controller="Account" asp-action="Logout" method="post">
+                                <button type="submit" class="btn btn-ghost">Logout</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <a class="btn btn-ghost" asp-area="" asp-controller="Account" asp-action="Login">Staff Login</a>
+                        }
+                    </div>
                 </div>
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - SchiperkeWebApp - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+    <main class="app-main" role="main">
+        <div class="container-fluid app-content">
+            @RenderBody()
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <div class="container-fluid app-footer-inner">
+            <a class="footer-brand" asp-controller="Home" asp-action="Index">
+                <span class="brand-mark brand-mark-small" aria-hidden="true">
+                    <span class="paw-toe toe-one"></span>
+                    <span class="paw-toe toe-two"></span>
+                    <span class="paw-toe toe-three"></span>
+                    <span class="paw-pad"></span>
+                </span>
+                <span>Schiperke Veterinary Clinic</span>
+            </a>
+            <div class="footer-links">
+                <a asp-controller="Appointments" asp-action="Book">Book Appointment</a>
+                <a asp-controller="Home" asp-action="Contact">Contact</a>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a asp-controller="Dashboard" asp-action="Index">Dashboard</a>
+                }
+                else
+                {
+                    <a asp-controller="Account" asp-action="Login">Staff Login</a>
+                }
+                <span>Pet-centered records only</span>
+            </div>
         </div>
     </footer>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>

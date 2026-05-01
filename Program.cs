@@ -1,4 +1,7 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using SchiperkeWebApp.Models.Database;
 using SchiperkeWebApp.Repositories.Implementations;
 using SchiperkeWebApp.Repositories.Interfaces;
@@ -13,8 +16,27 @@ namespace SchiperkeWebApp
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            var staffOnlyPolicy = new AuthorizationPolicyBuilder()
+                .RequireAuthenticatedUser()
+                .RequireRole("Admin", "Staff")
+                .Build();
+
             // Add services to the container.
-            builder.Services.AddControllersWithViews();
+            builder.Services.AddControllersWithViews(options =>
+            {
+                options.Filters.Add(new AuthorizeFilter(staffOnlyPolicy));
+            });
+
+            builder.Services
+                .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+                .AddCookie(options =>
+                {
+                    options.LoginPath = "/Account/Login";
+                    options.AccessDeniedPath = "/Account/AccessDenied";
+                    options.SlidingExpiration = true;
+                });
+
+            builder.Services.AddAuthorization();
 
 
             builder.Services.AddDbContext<SchiperkeDbContext>(options =>
@@ -47,6 +69,7 @@ namespace SchiperkeWebApp
             app.UseHttpsRedirection();
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapStaticAssets();

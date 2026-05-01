@@ -50,25 +50,33 @@ public partial class SchiperkeDbContext : DbContext
 
             entity.HasIndex(e => e.PetId, "IX_Appointments_PetId");
 
+            entity.HasIndex(e => e.AppointmentCode, "UX_Appointments_AppointmentCode")
+                .IsUnique()
+                .HasFilter("([AppointmentCode] IS NOT NULL)");
+
+            entity.Property(e => e.AppointmentCode).HasMaxLength(30);
+            entity.Property(e => e.Breed).HasMaxLength(100);
+            entity.Property(e => e.Color).HasMaxLength(50);
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
+            entity.Property(e => e.PatientNoInput).HasMaxLength(50);
+            entity.Property(e => e.PetName).HasMaxLength(100);
             entity.Property(e => e.ReasonForVisit).HasMaxLength(255);
             entity.Property(e => e.Remarks).HasMaxLength(500);
             entity.Property(e => e.ServiceType).HasMaxLength(50);
+            entity.Property(e => e.Sex).HasMaxLength(20);
+            entity.Property(e => e.Species).HasMaxLength(50);
             entity.Property(e => e.Status)
                 .HasMaxLength(30)
                 .HasDefaultValue("Pending");
+            entity.Property(e => e.UpdatedAt)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())");
 
-            entity.HasOne(d => d.CreatedByUser).WithMany(p => p.Appointments)
-                .HasForeignKey(d => d.CreatedByUserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Appointments_Users");
+            entity.HasOne(d => d.CreatedByUser).WithMany(p => p.Appointments).HasForeignKey(d => d.CreatedByUserId);
 
-            entity.HasOne(d => d.Pet).WithMany(p => p.Appointments)
-                .HasForeignKey(d => d.PetId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Appointments_Pets");
+            entity.HasOne(d => d.Pet).WithMany(p => p.Appointments).HasForeignKey(d => d.PetId);
         });
 
         modelBuilder.Entity<AppointmentsArchive>(entity =>

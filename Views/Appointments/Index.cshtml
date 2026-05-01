@@ -1,5 +1,108 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+@model IEnumerable<Appointment>
+
 @{
+    ViewData["Title"] = "Appointments";
 }
+
+<div class="page-header">
+    <div>
+        <div class="page-kicker">Schedule</div>
+        <h1>Appointments</h1>
+        <p class="page-subtitle">Review client booking requests and manage appointment status without owner/client data.</p>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Create" class="btn btn-primary">Create Appointment</a>
+    </div>
+</div>
+
+<form method="get" class="search-panel">
+    <div class="row g-2 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label" for="searchTerm">Search</label>
+            <input id="searchTerm" name="searchTerm" value="@ViewData["SearchTerm"]" class="form-control" placeholder="Code, patient no, pet name" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label" for="appointmentDate">Date</label>
+            <input id="appointmentDate" name="appointmentDate" type="date" value="@ViewData["AppointmentDate"]" class="form-control" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label" for="status">Status</label>
+            <select id="status" name="status" asp-items="@(ViewData["StatusOptions"] as IEnumerable<SelectListItem>)" class="form-select">
+                <option value="">All statuses</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label" for="serviceType">Service</label>
+            <select id="serviceType" name="serviceType" asp-items="@(ViewData["ServiceTypeOptions"] as IEnumerable<SelectListItem>)" class="form-select">
+                <option value="">All services</option>
+            </select>
+        </div>
+        <div class="col-md-1">
+            <button type="submit" class="btn btn-outline-primary w-100">Go</button>
+        </div>
+        <div class="col-md-1">
+            <a asp-action="Index" class="btn btn-outline-secondary w-100">Clear</a>
+        </div>
+    </div>
+</form>
+
+<div class="table-shell">
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Patient No</th>
+                    <th>Pet</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Service</th>
+                    <th>Status</th>
+                    <th>Reason</th>
+                    <th>Created By</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="10" class="empty-state">No appointments found.</td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var item in Model)
+                {
+                    var appointmentCode = item.AppointmentCode ?? $"APT-{item.AppointmentId:0000}";
+                    var patientNo = item.PatientNoInput ?? item.Pet?.PatientNo ?? "New patient";
+                    var petName = item.PetName ?? item.Pet?.PetName ?? "Unnamed pet";
+                    var speciesBreed = string.Join(" / ", new[] { item.Species ?? item.Pet?.Species, item.Breed ?? item.Pet?.Breed }.Where(value => !string.IsNullOrWhiteSpace(value)));
+                    <tr>
+                        <td><strong>@appointmentCode</strong></td>
+                        <td>@patientNo</td>
+                        <td>
+                            <strong>@petName</strong>
+                            @if (!string.IsNullOrWhiteSpace(speciesBreed))
+                            {
+                                <span class="table-subtext">@speciesBreed</span>
+                            }
+                        </td>
+                        <td>@item.AppointmentDate.ToString("yyyy-MM-dd")</td>
+                        <td>@item.AppointmentTime.ToString("hh:mm tt")</td>
+                        <td>@item.ServiceType</td>
+                        <td><span class="status-badge">@item.Status</span></td>
+                        <td>@item.ReasonForVisit</td>
+                        <td>@(item.CreatedByUser?.FullName ?? "Public booking")</td>
+                        <td class="text-end action-cell">
+                            <a asp-action="Details" asp-route-id="@item.AppointmentId" class="btn btn-sm btn-outline-secondary">Details</a>
+                            <a asp-action="Edit" asp-route-id="@item.AppointmentId" class="btn btn-sm btn-outline-primary">Edit</a>
+                            <a asp-action="Delete" asp-route-id="@item.AppointmentId" class="btn btn-sm btn-outline-danger">Deactivate</a>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

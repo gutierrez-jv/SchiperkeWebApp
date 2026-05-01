@@ -7,7 +7,7 @@ public partial class Appointment
 {
     public int AppointmentId { get; set; }
 
-    public int PetId { get; set; }
+    public int? PetId { get; set; }
 
     public DateOnly AppointmentDate { get; set; }
 
@@ -21,17 +21,35 @@ public partial class Appointment
 
     public string? Remarks { get; set; }
 
-    public int CreatedByUserId { get; set; }
+    public int? CreatedByUserId { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
     public bool IsDeleted { get; set; }
 
+    public string? AppointmentCode { get; set; }
+
+    public bool IsExistingPatient { get; set; }
+
+    public string? PatientNoInput { get; set; }
+
+    public string? PetName { get; set; }
+
+    public string? Species { get; set; }
+
+    public string? Breed { get; set; }
+
+    public string? Sex { get; set; }
+
+    public string? Color { get; set; }
+
+    public DateTime? UpdatedAt { get; set; }
+
     public virtual ICollection<ConsultationRecord> ConsultationRecords { get; set; } = new List<ConsultationRecord>();
 
-    public virtual User CreatedByUser { get; set; } = null!;
+    public virtual User? CreatedByUser { get; set; }
 
-    public virtual Pet Pet { get; set; } = null!;
+    public virtual Pet? Pet { get; set; }
 
     public virtual ICollection<VaccinationRecord> VaccinationRecords { get; set; } = new List<VaccinationRecord>();
 

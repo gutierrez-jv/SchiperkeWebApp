@@ -8,6 +8,7 @@ public interface IPetService
     Task<Pet?> GetByIdAsync(int id);
     Task<Pet?> GetByPatientNoAsync(string patientNo);
     Task<List<Pet>> SearchAsync(string searchTerm);
+    Task<string> GeneratePatientNoAsync();
     Task CreateAsync(Pet pet);
     Task UpdateAsync(Pet pet);
     Task DeleteAsync(int id);

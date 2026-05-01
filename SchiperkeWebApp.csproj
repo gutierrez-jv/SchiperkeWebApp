@@ -27,6 +27,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="bin\**\*.cs" />
+    <Compile Remove="obj\**\*.cs" />
     <Compile Remove="SchiperkeWebApp.Tests\**\*.cs" />
     <EmbeddedResource Remove="SchiperkeWebApp.Tests\**\*" />
     <None Remove="SchiperkeWebApp.Tests\**\*" />

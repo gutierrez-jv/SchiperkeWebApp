@@ -4,6 +4,7 @@ namespace SchiperkeWebApp.Services.Interfaces;
 
 public interface IWellnessRecordService
 {
+    IReadOnlyList<string> GetAllowedWellnessTypes();
     Task<List<WellnessRecord>> GetAllAsync();
     Task<WellnessRecord?> GetByIdAsync(int id);
     Task<List<WellnessRecord>> GetByPetIdAsync(int petId);

@@ -1,0 +1,65 @@
+@model ConsultationRecordFormViewModel
+
+<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <label asp-for="PetId" class="form-label"></label>
+        <select asp-for="PetId" asp-items="Model.PetOptions" class="form-select">
+            <option value="">Select pet</option>
+        </select>
+        <span asp-validation-for="PetId" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="RecordedByUserId" class="form-label"></label>
+        <select asp-for="RecordedByUserId" asp-items="Model.UserOptions" class="form-select">
+            <option value="">Select user</option>
+        </select>
+        <span asp-validation-for="RecordedByUserId" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="ConsultationDate" class="form-label"></label>
+        <input asp-for="ConsultationDate" type="datetime-local" class="form-control" />
+        <span asp-validation-for="ConsultationDate" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="ChiefComplaint" class="form-label"></label>
+        <textarea asp-for="ChiefComplaint" class="form-control" rows="3"></textarea>
+        <span asp-validation-for="ChiefComplaint" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="History" class="form-label"></label>
+        <textarea asp-for="History" class="form-control" rows="3"></textarea>
+        <span asp-validation-for="History" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Vitals" class="form-label"></label>
+        <textarea asp-for="Vitals" class="form-control" rows="3"></textarea>
+        <span asp-validation-for="Vitals" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="PhysicalExamination" class="form-label"></label>
+        <textarea asp-for="PhysicalExamination" class="form-control" rows="3"></textarea>
+        <span asp-validation-for="PhysicalExamination" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="LabExam" class="form-label"></label>
+        <textarea asp-for="LabExam" class="form-control" rows="3"></textarea>
+        <span asp-validation-for="LabExam" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Assessment" class="form-label"></label>
+        <textarea asp-for="Assessment" class="form-control" rows="3"></textarea>
+        <span asp-validation-for="Assessment" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Treatment" class="form-label"></label>
+        <textarea asp-for="Treatment" class="form-control" rows="3"></textarea>
+        <span asp-validation-for="Treatment" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Notes" class="form-label"></label>
+        <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+        <span asp-validation-for="Notes" class="text-danger"></span>
+    </div>
+</div>

@@ -1,5 +1,92 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+@model IEnumerable<WellnessRecord>
+
 @{
+    ViewData["Title"] = "Wellness Records";
 }
+
+<div class="page-header">
+    <div>
+        <div class="page-kicker">Wellness Services</div>
+        <h1>Wellness Records</h1>
+        <p class="page-subtitle">Deworming, antiparasitic medication, and other non-vaccine wellness care.</p>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Create" class="btn btn-primary">Add Record</a>
+    </div>
+</div>
+
+<form method="get" class="search-panel">
+    <div class="row g-2 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label" for="petId">Patient</label>
+            <select id="petId" name="petId" asp-items="@(ViewData["PetOptions"] as IEnumerable<SelectListItem>)" class="form-select">
+                <option value="">All patients</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label" for="wellnessType">Wellness Type</label>
+            <select id="wellnessType" name="wellnessType" asp-items="@(ViewData["WellnessTypeOptions"] as IEnumerable<SelectListItem>)" class="form-select">
+                <option value="">All wellness types</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label" for="dueFilter">Due Date</label>
+            <select id="dueFilter" name="dueFilter" class="form-select">
+                <option value="">All records</option>
+                <option value="upcoming" selected="@(ViewData["DueFilter"]?.ToString() == "upcoming")">Due within 30 days</option>
+                <option value="overdue" selected="@(ViewData["DueFilter"]?.ToString() == "overdue")">Overdue</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-outline-primary w-100">Filter</button>
+        </div>
+        <div class="col-md-2">
+            <a asp-action="Index" class="btn btn-outline-secondary w-100">Clear</a>
+        </div>
+    </div>
+</form>
+
+<div class="table-shell">
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Pet</th>
+                    <th>Type</th>
+                    <th>Product / Medication</th>
+                    <th>Date Given</th>
+                    <th>Next Due</th>
+                    <th>Recorded By</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="7" class="empty-state">No wellness records found.</td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.Pet.PatientNo - @item.Pet.PetName</td>
+                        <td><strong>@item.WellnessType</strong></td>
+                        <td>@item.ProductOrMedication</td>
+                        <td>@item.DateGiven.ToString("yyyy-MM-dd")</td>
+                        <td>@item.NextDueDate?.ToString("yyyy-MM-dd")</td>
+                        <td>@item.RecordedByUser.FullName</td>
+                        <td class="text-end action-cell">
+                            <a asp-action="Details" asp-route-id="@item.WellnessId" class="btn btn-sm btn-outline-secondary">Details</a>
+                            <a asp-action="Edit" asp-route-id="@item.WellnessId" class="btn btn-sm btn-outline-primary">Edit</a>
+                            <a asp-action="Delete" asp-route-id="@item.WellnessId" class="btn btn-sm btn-outline-danger">Deactivate</a>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

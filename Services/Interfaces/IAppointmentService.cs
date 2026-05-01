@@ -4,6 +4,9 @@ namespace SchiperkeWebApp.Services.Interfaces;
 
 public interface IAppointmentService
 {
+    IReadOnlyList<string> GetAllowedServiceTypes();
+    IReadOnlyList<string> GetAllowedStatuses();
+    IReadOnlyList<TimeOnly> GetAllowedAppointmentTimes();
     Task<List<Appointment>> GetAllAsync();
     Task<Appointment?> GetByIdAsync(int id);
     Task<List<Appointment>> GetByPetIdAsync(int petId);

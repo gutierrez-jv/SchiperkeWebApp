@@ -1,5 +1,151 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+@model PetProfileViewModel
+
 @{
+    ViewData["Title"] = "Pet Profile";
+    var pet = Model.Pet;
 }
+
+<div class="pet-profile-header">
+    <div>
+        <div class="page-kicker">Patient Profile</div>
+        <h1>@pet.PetName</h1>
+        <p class="page-subtitle">@pet.PatientNo - @pet.Species @(!string.IsNullOrWhiteSpace(pet.Breed) ? $"- {pet.Breed}" : "")</p>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Edit" asp-route-id="@pet.PetId" class="btn btn-primary">Edit Profile</a>
+        <a asp-action="Index" class="btn btn-outline-secondary">Back to Patients</a>
+    </div>
+</div>
+
+<section class="profile-grid">
+    <div class="content-panel">
+        <div class="section-heading">
+            <h2>Signalment</h2>
+        </div>
+        <dl class="profile-list">
+            <dt>Patient No.</dt>
+            <dd>@pet.PatientNo</dd>
+            <dt>Species</dt>
+            <dd>@pet.Species</dd>
+            <dt>Breed</dt>
+            <dd>@pet.Breed</dd>
+            <dt>Sex</dt>
+            <dd>@pet.Sex</dd>
+            <dt>Birth Date</dt>
+            <dd>@pet.BirthDate?.ToString("yyyy-MM-dd")</dd>
+            <dt>Age</dt>
+            <dd>@pet.AgeYears</dd>
+            <dt>Color</dt>
+            <dd>@pet.Color</dd>
+            <dt>Weight</dt>
+            <dd>@pet.Weight</dd>
+            <dt>Notes</dt>
+            <dd>@pet.Notes</dd>
+        </dl>
+    </div>
+
+    <div class="profile-summary">
+        <a asp-controller="Appointments" asp-action="Index" asp-route-petId="@pet.PetId" class="metric-card">
+            <span class="metric-label">Appointments</span>
+            <strong class="metric-value">@Model.Appointments.Count</strong>
+        </a>
+        <a asp-controller="ConsultationRecords" asp-action="Index" asp-route-petId="@pet.PetId" class="metric-card">
+            <span class="metric-label">Consultations</span>
+            <strong class="metric-value">@Model.ConsultationRecords.Count</strong>
+        </a>
+        <a asp-controller="VaccinationRecords" asp-action="Index" asp-route-petId="@pet.PetId" class="metric-card">
+            <span class="metric-label">Vaccinations</span>
+            <strong class="metric-value">@Model.VaccinationRecords.Count</strong>
+        </a>
+        <a asp-controller="WellnessRecords" asp-action="Index" asp-route-petId="@pet.PetId" class="metric-card">
+            <span class="metric-label">Wellness</span>
+            <strong class="metric-value">@Model.WellnessRecords.Count</strong>
+        </a>
+    </div>
+</section>
+
+<section class="profile-history-grid">
+    <div class="content-panel dashboard-list">
+        <div class="section-heading">
+            <h2>Appointment History</h2>
+        </div>
+        @if (!Model.Appointments.Any())
+        {
+            <div class="empty-state">No appointments found for this patient.</div>
+        }
+        else
+        {
+            @foreach (var item in Model.Appointments.Take(8))
+            {
+                <a asp-controller="Appointments" asp-action="Details" asp-route-id="@item.AppointmentId" class="timeline-item">
+                    <span>@item.AppointmentDate.ToString("yyyy-MM-dd") @item.AppointmentTime.ToString("HH\\:mm")</span>
+                    <strong>@item.ServiceType</strong>
+                    <em>@item.Status</em>
+                </a>
+            }
+        }
+    </div>
+
+    <div class="content-panel dashboard-list">
+        <div class="section-heading">
+            <h2>Consultations</h2>
+        </div>
+        @if (!Model.ConsultationRecords.Any())
+        {
+            <div class="empty-state">No consultations found for this patient.</div>
+        }
+        else
+        {
+            @foreach (var item in Model.ConsultationRecords.Take(8))
+            {
+                <a asp-controller="ConsultationRecords" asp-action="Details" asp-route-id="@item.ConsultationId" class="timeline-item">
+                    <span>@item.ConsultationDate.ToString("yyyy-MM-dd")</span>
+                    <strong>@item.ChiefComplaint</strong>
+                    <em>@item.Assessment</em>
+                </a>
+            }
+        }
+    </div>
+
+    <div class="content-panel dashboard-list">
+        <div class="section-heading">
+            <h2>Vaccinations</h2>
+        </div>
+        @if (!Model.VaccinationRecords.Any())
+        {
+            <div class="empty-state">No vaccination records found for this patient.</div>
+        }
+        else
+        {
+            @foreach (var item in Model.VaccinationRecords.Take(8))
+            {
+                <a asp-controller="VaccinationRecords" asp-action="Details" asp-route-id="@item.VaccinationId" class="timeline-item">
+                    <span>@item.DateGiven.ToString("yyyy-MM-dd")</span>
+                    <strong>@item.VaccineName</strong>
+                    <em>Next due: @item.NextDueDate?.ToString("yyyy-MM-dd")</em>
+                </a>
+            }
+        }
+    </div>
+
+    <div class="content-panel dashboard-list">
+        <div class="section-heading">
+            <h2>Wellness</h2>
+        </div>
+        @if (!Model.WellnessRecords.Any())
+        {
+            <div class="empty-state">No wellness records found for this patient.</div>
+        }
+        else
+        {
+            @foreach (var item in Model.WellnessRecords.Take(8))
+            {
+                <a asp-controller="WellnessRecords" asp-action="Details" asp-route-id="@item.WellnessId" class="timeline-item">
+                    <span>@item.DateGiven.ToString("yyyy-MM-dd")</span>
+                    <strong>@item.WellnessType</strong>
+                    <em>@item.ProductOrMedication</em>
+                </a>
+            }
+        }
+    </div>
+</section>

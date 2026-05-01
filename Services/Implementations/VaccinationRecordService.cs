@@ -53,6 +53,13 @@ public class VaccinationRecordService : IVaccinationRecordService
         await ValidateVaccinationRecordAsync(vaccinationRecord);
         NormalizeVaccinationRecord(vaccinationRecord);
 
+        if (vaccinationRecord.CreatedAt == default)
+        {
+            vaccinationRecord.CreatedAt = DateTime.Now;
+        }
+
+        vaccinationRecord.IsDeleted = false;
+
         await _vaccinationRecordRepository.AddAsync(vaccinationRecord);
         await _vaccinationRecordRepository.SaveAsync();
     }
@@ -67,10 +74,20 @@ public class VaccinationRecordService : IVaccinationRecordService
 
         await ValidateVaccinationRecordAsync(vaccinationRecord);
         NormalizeVaccinationRecord(vaccinationRecord);
-        vaccinationRecord.CreatedAt = existingVaccinationRecord.CreatedAt;
-        vaccinationRecord.IsDeleted = existingVaccinationRecord.IsDeleted;
 
-        _vaccinationRecordRepository.Update(vaccinationRecord);
+        existingVaccinationRecord.PetId = vaccinationRecord.PetId;
+        existingVaccinationRecord.AppointmentId = vaccinationRecord.AppointmentId;
+        existingVaccinationRecord.VaccineName = vaccinationRecord.VaccineName;
+        existingVaccinationRecord.DateGiven = vaccinationRecord.DateGiven;
+        existingVaccinationRecord.NextDueDate = vaccinationRecord.NextDueDate;
+        existingVaccinationRecord.Dose = vaccinationRecord.Dose;
+        existingVaccinationRecord.Route = vaccinationRecord.Route;
+        existingVaccinationRecord.Manufacturer = vaccinationRecord.Manufacturer;
+        existingVaccinationRecord.LotNumber = vaccinationRecord.LotNumber;
+        existingVaccinationRecord.Remarks = vaccinationRecord.Remarks;
+        existingVaccinationRecord.RecordedByUserId = vaccinationRecord.RecordedByUserId;
+
+        _vaccinationRecordRepository.Update(existingVaccinationRecord);
         await _vaccinationRecordRepository.SaveAsync();
     }
 
@@ -119,7 +136,12 @@ public class VaccinationRecordService : IVaccinationRecordService
                 throw new InvalidOperationException("Vaccination appointment was not found.");
             }
 
-            if (appointment.PetId != vaccinationRecord.PetId)
+            if (!appointment.PetId.HasValue)
+            {
+                throw new InvalidOperationException("Public booking appointments are not linked directly to vaccination records.");
+            }
+
+            if (appointment.PetId.Value != vaccinationRecord.PetId)
             {
                 throw new InvalidOperationException("Vaccination appointment does not belong to the selected pet.");
             }

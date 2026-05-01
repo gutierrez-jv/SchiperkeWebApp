@@ -1,5 +1,35 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+@model VaccinationRecord
+
 @{
+    ViewData["Title"] = "Vaccination Details";
 }
+
+<h1>Vaccination Details</h1>
+
+<dl class="row">
+    <dt class="col-sm-3">Pet</dt>
+    <dd class="col-sm-9">@Model.Pet.PatientNo - @Model.Pet.PetName</dd>
+    <dt class="col-sm-3">Vaccine Name</dt>
+    <dd class="col-sm-9">@Model.VaccineName</dd>
+    <dt class="col-sm-3">Date Given</dt>
+    <dd class="col-sm-9">@Model.DateGiven.ToString("yyyy-MM-dd")</dd>
+    <dt class="col-sm-3">Next Due Date</dt>
+    <dd class="col-sm-9">@Model.NextDueDate?.ToString("yyyy-MM-dd")</dd>
+    <dt class="col-sm-3">Dose</dt>
+    <dd class="col-sm-9">@Model.Dose</dd>
+    <dt class="col-sm-3">Route</dt>
+    <dd class="col-sm-9">@Model.Route</dd>
+    <dt class="col-sm-3">Manufacturer</dt>
+    <dd class="col-sm-9">@Model.Manufacturer</dd>
+    <dt class="col-sm-3">Lot Number</dt>
+    <dd class="col-sm-9">@Model.LotNumber</dd>
+    <dt class="col-sm-3">Recorded By</dt>
+    <dd class="col-sm-9">@Model.RecordedByUser.FullName</dd>
+    <dt class="col-sm-3">Remarks</dt>
+    <dd class="col-sm-9">@Model.Remarks</dd>
+</dl>
+
+<div class="d-flex gap-2">
+    <a asp-action="Edit" asp-route-id="@Model.VaccinationId" class="btn btn-primary">Edit</a>
+    <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+</div>

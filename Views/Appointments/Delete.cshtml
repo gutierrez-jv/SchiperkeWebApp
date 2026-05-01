@@ -1,5 +1,34 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+@model Appointment
+
 @{
+    ViewData["Title"] = "Deactivate Appointment";
+    var appointmentCode = Model.AppointmentCode ?? $"APT-{Model.AppointmentId:0000}";
+    var patientNo = Model.PatientNoInput ?? Model.Pet?.PatientNo ?? "New patient";
+    var petName = Model.PetName ?? Model.Pet?.PetName ?? "Unnamed pet";
 }
+
+<h1>Deactivate Appointment</h1>
+<div class="soft-delete-note">
+    Are you sure you want to deactivate/archive this appointment? This appointment will not be permanently deleted and will only be hidden from normal lists.
+</div>
+
+<dl class="row">
+    <dt class="col-sm-3">Appointment Code</dt>
+    <dd class="col-sm-9">@appointmentCode</dd>
+    <dt class="col-sm-3">Patient No</dt>
+    <dd class="col-sm-9">@patientNo</dd>
+    <dt class="col-sm-3">Pet</dt>
+    <dd class="col-sm-9">@petName</dd>
+    <dt class="col-sm-3">Date</dt>
+    <dd class="col-sm-9">@Model.AppointmentDate.ToString("yyyy-MM-dd")</dd>
+    <dt class="col-sm-3">Time</dt>
+    <dd class="col-sm-9">@Model.AppointmentTime.ToString("hh:mm tt")</dd>
+    <dt class="col-sm-3">Service Type</dt>
+    <dd class="col-sm-9">@Model.ServiceType</dd>
+</dl>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" asp-for="AppointmentId" />
+    <button type="submit" class="btn btn-danger">Deactivate</button>
+    <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+</form>

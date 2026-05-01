@@ -1,0 +1,41 @@
+@{
+    ViewData["Title"] = "Appointment Submitted";
+    var appointmentCode = TempData["AppointmentCode"]?.ToString();
+    var patientNoInput = TempData["PatientNoInput"]?.ToString();
+    var petName = TempData["PetName"]?.ToString();
+    var appointmentDate = TempData["AppointmentDate"]?.ToString();
+    var appointmentTime = TempData["AppointmentTime"]?.ToString();
+    var serviceType = TempData["ServiceType"]?.ToString();
+}
+
+<section class="result-layout">
+    <div class="result-panel">
+        <div class="page-kicker">Request Received</div>
+        <h1>Appointment Submitted</h1>
+        <p class="result-copy">Your appointment request is pending clinic review. Keep the reference code for follow-up.</p>
+
+        @if (!string.IsNullOrWhiteSpace(appointmentCode))
+        {
+            <div class="queue-ticket" role="status" aria-live="polite">
+                <span>Appointment Reference</span>
+                <strong>@appointmentCode</strong>
+                <small>Pet: @petName</small>
+                @if (!string.IsNullOrWhiteSpace(patientNoInput))
+                {
+                    <small>Patient No: @patientNoInput</small>
+                }
+                <small>Schedule: @appointmentDate @appointmentTime</small>
+                <small>Service: @serviceType</small>
+            </div>
+        }
+
+        <div class="form-actions mt-4">
+            <a asp-action="Book" class="btn btn-primary">Book Another Appointment</a>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">Back Home</a>
+        </div>
+    </div>
+    <aside class="result-aside">
+        <h2 class="h4">Screenshot or remember this code.</h2>
+        <p>The clinic can use the appointment reference and patient number, if provided, to review the request.</p>
+    </aside>
+</section>

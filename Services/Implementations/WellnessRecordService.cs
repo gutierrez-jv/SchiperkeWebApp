@@ -6,6 +6,14 @@ namespace SchiperkeWebApp.Services.Implementations;
 
 public class WellnessRecordService : IWellnessRecordService
 {
+    private static readonly string[] AllowedWellnessTypes =
+    [
+        "Deworming",
+        "Internal Antiparasitic",
+        "External Antiparasitic",
+        "General Wellness"
+    ];
+
     private readonly IWellnessRecordRepository _wellnessRecordRepository;
     private readonly IPetRepository _petRepository;
     private readonly IUserRepository _userRepository;
@@ -45,7 +53,13 @@ public class WellnessRecordService : IWellnessRecordService
             throw new ArgumentException("Wellness type is required.");
         }
 
-        return await _wellnessRecordRepository.GetByWellnessTypeAsync(wellnessType.Trim());
+        var normalizedWellnessType = NormalizeAllowedWellnessType(wellnessType);
+        return await _wellnessRecordRepository.GetByWellnessTypeAsync(normalizedWellnessType);
+    }
+
+    public IReadOnlyList<string> GetAllowedWellnessTypes()
+    {
+        return AllowedWellnessTypes;
     }
 
     public async Task<List<WellnessRecord>> GetUpcomingDueAsync()
@@ -63,6 +77,13 @@ public class WellnessRecordService : IWellnessRecordService
         await ValidateWellnessRecordAsync(wellnessRecord);
         NormalizeWellnessRecord(wellnessRecord);
 
+        if (wellnessRecord.CreatedAt == default)
+        {
+            wellnessRecord.CreatedAt = DateTime.Now;
+        }
+
+        wellnessRecord.IsDeleted = false;
+
         await _wellnessRecordRepository.AddAsync(wellnessRecord);
         await _wellnessRecordRepository.SaveAsync();
     }
@@ -77,10 +98,19 @@ public class WellnessRecordService : IWellnessRecordService
 
         await ValidateWellnessRecordAsync(wellnessRecord);
         NormalizeWellnessRecord(wellnessRecord);
-        wellnessRecord.CreatedAt = existingWellnessRecord.CreatedAt;
-        wellnessRecord.IsDeleted = existingWellnessRecord.IsDeleted;
 
-        _wellnessRecordRepository.Update(wellnessRecord);
+        existingWellnessRecord.PetId = wellnessRecord.PetId;
+        existingWellnessRecord.AppointmentId = wellnessRecord.AppointmentId;
+        existingWellnessRecord.WellnessType = wellnessRecord.WellnessType;
+        existingWellnessRecord.ProductOrMedication = wellnessRecord.ProductOrMedication;
+        existingWellnessRecord.DateGiven = wellnessRecord.DateGiven;
+        existingWellnessRecord.NextDueDate = wellnessRecord.NextDueDate;
+        existingWellnessRecord.Dose = wellnessRecord.Dose;
+        existingWellnessRecord.Route = wellnessRecord.Route;
+        existingWellnessRecord.Remarks = wellnessRecord.Remarks;
+        existingWellnessRecord.RecordedByUserId = wellnessRecord.RecordedByUserId;
+
+        _wellnessRecordRepository.Update(existingWellnessRecord);
         await _wellnessRecordRepository.SaveAsync();
     }
 
@@ -121,6 +151,8 @@ public class WellnessRecordService : IWellnessRecordService
                 "Vaccination entries should be saved in Vaccination Records, not Wellness Records.");
         }
 
+        _ = NormalizeAllowedWellnessType(wellnessRecord.WellnessType);
+
         var pet = await _petRepository.GetByIdAsync(wellnessRecord.PetId);
         if (pet is null)
         {
@@ -141,7 +173,12 @@ public class WellnessRecordService : IWellnessRecordService
                 throw new InvalidOperationException("Wellness appointment was not found.");
             }
 
-            if (appointment.PetId != wellnessRecord.PetId)
+            if (!appointment.PetId.HasValue)
+            {
+                throw new InvalidOperationException("Public booking appointments are not linked directly to wellness records.");
+            }
+
+            if (appointment.PetId.Value != wellnessRecord.PetId)
             {
                 throw new InvalidOperationException("Wellness appointment does not belong to the selected pet.");
             }
@@ -156,11 +193,23 @@ public class WellnessRecordService : IWellnessRecordService
 
     private static void NormalizeWellnessRecord(WellnessRecord wellnessRecord)
     {
-        wellnessRecord.WellnessType = wellnessRecord.WellnessType.Trim();
+        wellnessRecord.WellnessType = NormalizeAllowedWellnessType(wellnessRecord.WellnessType);
         wellnessRecord.ProductOrMedication = wellnessRecord.ProductOrMedication.Trim();
         wellnessRecord.Dose = CleanText(wellnessRecord.Dose);
         wellnessRecord.Route = CleanText(wellnessRecord.Route);
         wellnessRecord.Remarks = CleanText(wellnessRecord.Remarks);
+    }
+
+    private static string NormalizeAllowedWellnessType(string wellnessType)
+    {
+        var value = wellnessType.Trim();
+        var normalizedValue = AllowedWellnessTypes.FirstOrDefault(type => type.Equals(value, StringComparison.OrdinalIgnoreCase));
+        if (normalizedValue is null)
+        {
+            throw new ArgumentException("Wellness type must be Deworming, Internal Antiparasitic, External Antiparasitic, or General Wellness.");
+        }
+
+        return normalizedValue;
     }
 
     private static string? CleanText(string? value)

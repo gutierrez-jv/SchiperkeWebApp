@@ -1,5 +1,37 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+@model ConsultationRecord
+
 @{
+    ViewData["Title"] = "Consultation Details";
 }
+
+<h1>Consultation Details</h1>
+
+<dl class="row">
+    <dt class="col-sm-3">Pet</dt>
+    <dd class="col-sm-9">@Model.Pet.PatientNo - @Model.Pet.PetName</dd>
+    <dt class="col-sm-3">Consultation Date</dt>
+    <dd class="col-sm-9">@Model.ConsultationDate.ToString("yyyy-MM-dd HH:mm")</dd>
+    <dt class="col-sm-3">Chief Complaint</dt>
+    <dd class="col-sm-9">@Model.ChiefComplaint</dd>
+    <dt class="col-sm-3">History</dt>
+    <dd class="col-sm-9">@Model.History</dd>
+    <dt class="col-sm-3">Vitals</dt>
+    <dd class="col-sm-9">@Model.Vitals</dd>
+    <dt class="col-sm-3">Physical Examination</dt>
+    <dd class="col-sm-9">@Model.PhysicalExamination</dd>
+    <dt class="col-sm-3">Lab Exam</dt>
+    <dd class="col-sm-9">@Model.LabExam</dd>
+    <dt class="col-sm-3">Assessment</dt>
+    <dd class="col-sm-9">@Model.Assessment</dd>
+    <dt class="col-sm-3">Treatment</dt>
+    <dd class="col-sm-9">@Model.Treatment</dd>
+    <dt class="col-sm-3">Notes</dt>
+    <dd class="col-sm-9">@Model.Notes</dd>
+    <dt class="col-sm-3">Recorded By</dt>
+    <dd class="col-sm-9">@Model.RecordedByUser.FullName</dd>
+</dl>
+
+<div class="d-flex gap-2">
+    <a asp-action="Edit" asp-route-id="@Model.ConsultationId" class="btn btn-primary">Edit</a>
+    <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+</div>

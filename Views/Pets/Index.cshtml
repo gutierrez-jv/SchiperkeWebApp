@@ -1,5 +1,73 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+@model IEnumerable<Pet>
+
 @{
+    ViewData["Title"] = "Pets";
 }
+
+<div class="page-header">
+    <div>
+        <div class="page-kicker">Patient Records</div>
+        <h1>Pets</h1>
+        <p class="page-subtitle">Search and manage active pet records.</p>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Create" class="btn btn-primary">Register Pet</a>
+    </div>
+</div>
+
+<form method="get" class="search-panel">
+    <div class="row g-2 align-items-center">
+        <div class="col-md-8">
+            <input name="searchTerm" value="@ViewData["SearchTerm"]" class="form-control" placeholder="Search patient no., pet name, species, or breed" />
+        </div>
+        <div class="col-md-auto">
+            <button type="submit" class="btn btn-outline-primary">Search</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">Clear</a>
+        </div>
+    </div>
+</form>
+
+<div class="table-shell">
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Patient No.</th>
+                    <th>Pet Name</th>
+                    <th>Species</th>
+                    <th>Breed</th>
+                    <th>Sex</th>
+                    <th>Weight</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="7" class="empty-state">No active pets found.</td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td><strong>@item.PatientNo</strong></td>
+                        <td>@item.PetName</td>
+                        <td>@item.Species</td>
+                        <td>@item.Breed</td>
+                        <td>@item.Sex</td>
+                        <td>@item.Weight</td>
+                        <td class="text-end action-cell">
+                            <a asp-action="Details" asp-route-id="@item.PetId" class="btn btn-sm btn-outline-secondary">Details</a>
+                            <a asp-action="Edit" asp-route-id="@item.PetId" class="btn btn-sm btn-outline-primary">Edit</a>
+                            <a asp-action="Delete" asp-route-id="@item.PetId" class="btn btn-sm btn-outline-danger">Deactivate</a>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

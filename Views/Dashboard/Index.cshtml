@@ -1,0 +1,76 @@
+@model DashboardViewModel
+
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="page-header">
+    <div>
+        <div class="page-kicker">Clinic Overview</div>
+        <h1>Dashboard</h1>
+        <p class="page-subtitle">Quick summary of appointment requests and active pet patients.</p>
+    </div>
+    <div class="page-actions">
+        <a asp-controller="Appointments" asp-action="Index" class="btn btn-primary">View Appointments</a>
+        <a asp-controller="Appointments" asp-action="Book" class="btn btn-outline-primary">Public Booking Page</a>
+    </div>
+</div>
+
+<section class="dashboard-metrics">
+    <a asp-controller="Pets" asp-action="Index" class="metric-card">
+        <span class="metric-label">Active Patients</span>
+        <strong class="metric-value">@Model.ActivePetCount</strong>
+    </a>
+    <a asp-controller="Appointments" asp-action="Index" asp-route-appointmentDate="@DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd")" class="metric-card">
+        <span class="metric-label">Today</span>
+        <strong class="metric-value">@Model.TodayAppointmentCount</strong>
+    </a>
+    <a asp-controller="Appointments" asp-action="Index" asp-route-status="Pending" class="metric-card">
+        <span class="metric-label">Pending</span>
+        <strong class="metric-value">@Model.PendingAppointmentCount</strong>
+    </a>
+    <a asp-controller="Appointments" asp-action="Index" asp-route-status="Confirmed" class="metric-card">
+        <span class="metric-label">Confirmed</span>
+        <strong class="metric-value">@Model.ConfirmedAppointmentCount</strong>
+    </a>
+    <a asp-controller="Appointments" asp-action="Index" asp-route-status="Completed" class="metric-card">
+        <span class="metric-label">Completed</span>
+        <strong class="metric-value">@Model.CompletedAppointmentCount</strong>
+    </a>
+    <a asp-controller="Appointments" asp-action="Index" asp-route-status="Cancelled" class="metric-card metric-card-warning">
+        <span class="metric-label">Cancelled</span>
+        <strong class="metric-value">@Model.CancelledAppointmentCount</strong>
+    </a>
+    <a asp-controller="Appointments" asp-action="Index" asp-route-status="No-Show" class="metric-card metric-card-warning">
+        <span class="metric-label">No-Show</span>
+        <strong class="metric-value">@Model.NoShowAppointmentCount</strong>
+    </a>
+</section>
+
+<section class="dashboard-sections">
+    <div class="content-panel dashboard-list">
+        <div class="section-heading">
+            <h2>Today&apos;s Appointments</h2>
+            <a asp-controller="Appointments" asp-action="Index">View all</a>
+        </div>
+        @if (!Model.TodayAppointments.Any())
+        {
+            <div class="empty-state">No appointments scheduled for today.</div>
+        }
+        else
+        {
+            @foreach (var item in Model.TodayAppointments)
+            {
+                var appointmentCode = item.AppointmentCode ?? $"APT-{item.AppointmentId:0000}";
+                var patientNo = item.PatientNoInput ?? item.Pet?.PatientNo ?? "New patient";
+                var petName = item.PetName ?? item.Pet?.PetName ?? "Unnamed pet";
+
+                <a asp-controller="Appointments" asp-action="Details" asp-route-id="@item.AppointmentId" class="timeline-item">
+                    <span>@item.AppointmentTime.ToString("hh:mm tt")</span>
+                    <strong>@appointmentCode - @petName</strong>
+                    <em>@patientNo · @item.ServiceType · @item.Status</em>
+                </a>
+            }
+        }
+    </div>
+</section>

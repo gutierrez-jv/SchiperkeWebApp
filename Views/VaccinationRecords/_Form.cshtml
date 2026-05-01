@@ -1,0 +1,60 @@
+@model VaccinationRecordFormViewModel
+
+<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <label asp-for="PetId" class="form-label"></label>
+        <select asp-for="PetId" asp-items="Model.PetOptions" class="form-select">
+            <option value="">Select pet</option>
+        </select>
+        <span asp-validation-for="PetId" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="RecordedByUserId" class="form-label"></label>
+        <select asp-for="RecordedByUserId" asp-items="Model.UserOptions" class="form-select">
+            <option value="">Select user</option>
+        </select>
+        <span asp-validation-for="RecordedByUserId" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="VaccineName" class="form-label"></label>
+        <input asp-for="VaccineName" class="form-control" />
+        <span asp-validation-for="VaccineName" class="text-danger"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="DateGiven" class="form-label"></label>
+        <input asp-for="DateGiven" type="date" class="form-control" />
+        <span asp-validation-for="DateGiven" class="text-danger"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="NextDueDate" class="form-label"></label>
+        <input asp-for="NextDueDate" type="date" class="form-control" />
+        <span asp-validation-for="NextDueDate" class="text-danger"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Dose" class="form-label"></label>
+        <input asp-for="Dose" class="form-control" />
+        <span asp-validation-for="Dose" class="text-danger"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Route" class="form-label"></label>
+        <input asp-for="Route" class="form-control" />
+        <span asp-validation-for="Route" class="text-danger"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Manufacturer" class="form-label"></label>
+        <input asp-for="Manufacturer" class="form-control" />
+        <span asp-validation-for="Manufacturer" class="text-danger"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="LotNumber" class="form-label"></label>
+        <input asp-for="LotNumber" class="form-control" />
+        <span asp-validation-for="LotNumber" class="text-danger"></span>
+    </div>
+    <div class="col-12">
+        <label asp-for="Remarks" class="form-label"></label>
+        <textarea asp-for="Remarks" class="form-control" rows="4"></textarea>
+        <span asp-validation-for="Remarks" class="text-danger"></span>
+    </div>
+</div>

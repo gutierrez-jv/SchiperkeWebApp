@@ -1,0 +1,19 @@
+@{
+    ViewData["Title"] = "Access Denied";
+}
+
+<section class="result-layout">
+    <div class="result-panel">
+        <div class="page-kicker">Restricted Area</div>
+        <h1>Access Denied</h1>
+        <p class="result-copy">Only admin or staff accounts can access that page.</p>
+        <div class="form-actions mt-4">
+            <a asp-controller="Appointments" asp-action="Book" class="btn btn-primary">Book Appointment</a>
+            <a asp-controller="Account" asp-action="Login" class="btn btn-outline-secondary">Staff Login</a>
+        </div>
+    </div>
+    <aside class="result-aside">
+        <h2 class="h4">Private clinic workspace</h2>
+        <p>Sign in with an admin or staff account to view and manage patient records.</p>
+    </aside>
+</section>

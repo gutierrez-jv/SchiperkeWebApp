@@ -1,0 +1,44 @@
+@model LoginViewModel
+
+@{
+    ViewData["Title"] = "Staff Login";
+}
+
+<section class="auth-layout">
+    <div class="auth-panel">
+        <div class="page-kicker">Secure Workspace</div>
+        <h1>Staff Login</h1>
+        <p class="auth-copy">Admin and staff access is required for patient records and clinic operations.</p>
+
+        <form asp-action="Login" method="post" class="mt-4">
+            <input asp-for="ReturnUrl" type="hidden" />
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="mb-3">
+                <label asp-for="Username" class="form-label"></label>
+                <input asp-for="Username" class="form-control" autocomplete="username" />
+                <span asp-validation-for="Username" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label"></label>
+                <input asp-for="Password" class="form-control" autocomplete="current-password" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Sign In</button>
+                <a asp-controller="Appointments" asp-action="Book" class="btn btn-outline-secondary">Book Appointment</a>
+            </div>
+        </form>
+    </div>
+
+    <aside class="auth-aside">
+        <h2 class="h4">Records stay private.</h2>
+        <p>The public can book appointments, while patient records remain limited to authorized clinic users.</p>
+    </aside>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -53,6 +53,13 @@ public class ConsultationRecordService : IConsultationRecordService
         await ValidateConsultationRecordAsync(consultationRecord);
         NormalizeConsultationRecord(consultationRecord);
 
+        if (consultationRecord.CreatedAt == default)
+        {
+            consultationRecord.CreatedAt = DateTime.Now;
+        }
+
+        consultationRecord.IsDeleted = false;
+
         await _consultationRecordRepository.AddAsync(consultationRecord);
         await _consultationRecordRepository.SaveAsync();
     }
@@ -67,10 +74,21 @@ public class ConsultationRecordService : IConsultationRecordService
 
         await ValidateConsultationRecordAsync(consultationRecord);
         NormalizeConsultationRecord(consultationRecord);
-        consultationRecord.CreatedAt = existingConsultationRecord.CreatedAt;
-        consultationRecord.IsDeleted = existingConsultationRecord.IsDeleted;
 
-        _consultationRecordRepository.Update(consultationRecord);
+        existingConsultationRecord.PetId = consultationRecord.PetId;
+        existingConsultationRecord.AppointmentId = consultationRecord.AppointmentId;
+        existingConsultationRecord.ConsultationDate = consultationRecord.ConsultationDate;
+        existingConsultationRecord.ChiefComplaint = consultationRecord.ChiefComplaint;
+        existingConsultationRecord.History = consultationRecord.History;
+        existingConsultationRecord.Vitals = consultationRecord.Vitals;
+        existingConsultationRecord.PhysicalExamination = consultationRecord.PhysicalExamination;
+        existingConsultationRecord.LabExam = consultationRecord.LabExam;
+        existingConsultationRecord.Assessment = consultationRecord.Assessment;
+        existingConsultationRecord.Treatment = consultationRecord.Treatment;
+        existingConsultationRecord.Notes = consultationRecord.Notes;
+        existingConsultationRecord.RecordedByUserId = consultationRecord.RecordedByUserId;
+
+        _consultationRecordRepository.Update(existingConsultationRecord);
         await _consultationRecordRepository.SaveAsync();
     }
 
@@ -114,7 +132,12 @@ public class ConsultationRecordService : IConsultationRecordService
                 throw new InvalidOperationException("Consultation record appointment was not found.");
             }
 
-            if (appointment.PetId != consultationRecord.PetId)
+            if (!appointment.PetId.HasValue)
+            {
+                throw new InvalidOperationException("Public booking appointments are not linked directly to consultation records.");
+            }
+
+            if (appointment.PetId.Value != consultationRecord.PetId)
             {
                 throw new InvalidOperationException("Consultation appointment does not belong to the selected pet.");
             }

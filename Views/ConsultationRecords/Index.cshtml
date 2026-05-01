@@ -1,5 +1,82 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+@model IEnumerable<ConsultationRecord>
+
 @{
+    ViewData["Title"] = "Consultation Records";
 }
+
+<div class="page-header">
+    <div>
+        <div class="page-kicker">Health Services</div>
+        <h1>Consultation Records</h1>
+        <p class="page-subtitle">Chief complaint, history, vitals, exam, assessment, and treatment records.</p>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Create" class="btn btn-primary">Add Record</a>
+    </div>
+</div>
+
+<form method="get" class="search-panel">
+    <div class="row g-2 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label" for="petId">Patient</label>
+            <select id="petId" name="petId" asp-items="@(ViewData["PetOptions"] as IEnumerable<SelectListItem>)" class="form-select">
+                <option value="">All patients</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label" for="startDate">Start Date</label>
+            <input id="startDate" name="startDate" type="date" value="@ViewData["StartDate"]" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label" for="endDate">End Date</label>
+            <input id="endDate" name="endDate" type="date" value="@ViewData["EndDate"]" class="form-control" />
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-outline-primary w-100">Filter</button>
+        </div>
+        <div class="col-md-2">
+            <a asp-action="Index" class="btn btn-outline-secondary w-100">Clear</a>
+        </div>
+    </div>
+</form>
+
+<div class="table-shell">
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Pet</th>
+                    <th>Chief Complaint</th>
+                    <th>Recorded By</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="5" class="empty-state">No consultation records found.</td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td><strong>@item.ConsultationDate.ToString("yyyy-MM-dd HH:mm")</strong></td>
+                        <td>@item.Pet.PatientNo - @item.Pet.PetName</td>
+                        <td>@item.ChiefComplaint</td>
+                        <td>@item.RecordedByUser.FullName</td>
+                        <td class="text-end action-cell">
+                            <a asp-action="Details" asp-route-id="@item.ConsultationId" class="btn btn-sm btn-outline-secondary">Details</a>
+                            <a asp-action="Edit" asp-route-id="@item.ConsultationId" class="btn btn-sm btn-outline-primary">Edit</a>
+                            <a asp-action="Delete" asp-route-id="@item.ConsultationId" class="btn btn-sm btn-outline-danger">Deactivate</a>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

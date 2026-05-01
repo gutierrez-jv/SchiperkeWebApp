@@ -43,6 +43,25 @@ public class PetService : IPetService
         return await _petRepository.SearchAsync(searchTerm.Trim());
     }
 
+    public async Task<string> GeneratePatientNoAsync()
+    {
+        var activePets = await _petRepository.GetAllAsync();
+        var nextNumber = activePets
+            .Select(p => TryParsePatientNumber(p.PatientNo))
+            .DefaultIfEmpty(0)
+            .Max() + 1;
+
+        string patientNo;
+        do
+        {
+            patientNo = $"PET-{nextNumber:0000}";
+            nextNumber++;
+        }
+        while (await _petRepository.GetByPatientNoAsync(patientNo) is not null);
+
+        return patientNo;
+    }
+
     public async Task CreateAsync(Pet pet)
     {
         PreparePetForSave(pet);
@@ -155,5 +174,11 @@ public class PetService : IPetService
         }
 
         return Math.Max(age, 0);
+    }
+
+    private static int TryParsePatientNumber(string patientNo)
+    {
+        var digits = new string(patientNo.Where(char.IsDigit).ToArray());
+        return int.TryParse(digits, out var number) ? number : 0;
     }
 }

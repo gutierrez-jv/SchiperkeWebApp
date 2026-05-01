@@ -1,0 +1,25 @@
+@model User
+
+@{
+    ViewData["Title"] = "Deactivate User";
+}
+
+<h1>Deactivate User</h1>
+<div class="soft-delete-note">
+    Are you sure you want to deactivate this user? This record will not be permanently deleted and can still be recovered if needed.
+</div>
+
+<dl class="row">
+    <dt class="col-sm-3">Full Name</dt>
+    <dd class="col-sm-9">@Model.FullName</dd>
+    <dt class="col-sm-3">Username</dt>
+    <dd class="col-sm-9">@Model.Username</dd>
+    <dt class="col-sm-3">Role</dt>
+    <dd class="col-sm-9">@Model.Role</dd>
+</dl>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" asp-for="UserId" />
+    <button type="submit" class="btn btn-danger">Deactivate</button>
+    <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+</form>

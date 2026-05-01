@@ -1,0 +1,109 @@
+@model AppointmentFormViewModel
+
+<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+<input asp-for="CreatedByUserId" type="hidden" />
+<input asp-for="PetId" type="hidden" />
+<input asp-for="AppointmentCode" type="hidden" />
+
+@if (!string.IsNullOrWhiteSpace(Model.AppointmentCode))
+{
+    <div class="soft-delete-note mb-3">
+        Appointment reference: <strong>@Model.AppointmentCode</strong>
+    </div>
+}
+
+<section class="form-section">
+    <h2 class="h5">Previous Visit</h2>
+    <div class="form-check form-switch">
+        <input asp-for="IsExistingPatient" class="form-check-input" role="switch" />
+        <label asp-for="IsExistingPatient" class="form-check-label"></label>
+    </div>
+    <p class="form-hint">Use the patient number only if the pet already has a clinic record.</p>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label asp-for="PatientNoInput" class="form-label"></label>
+            <input asp-for="PatientNoInput" class="form-control" autocomplete="off" />
+            <span asp-validation-for="PatientNoInput" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="CreatedByDisplayName">Created By</label>
+            <input id="CreatedByDisplayName" value="@Model.CreatedByDisplayName" class="form-control" readonly />
+        </div>
+    </div>
+</section>
+
+<section class="form-section">
+    <h2 class="h5">Pet Details</h2>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label asp-for="PetName" class="form-label"></label>
+            <input asp-for="PetName" class="form-control" autocomplete="off" />
+            <span asp-validation-for="PetName" class="text-danger"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="Species" class="form-label"></label>
+            <input asp-for="Species" class="form-control" />
+            <span asp-validation-for="Species" class="text-danger"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="Sex" class="form-label"></label>
+            <select asp-for="Sex" asp-items="Model.SexOptions" class="form-select">
+                <option value="">Select sex</option>
+            </select>
+            <span asp-validation-for="Sex" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="Breed" class="form-label"></label>
+            <input asp-for="Breed" class="form-control" autocomplete="off" />
+            <span asp-validation-for="Breed" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="Color" class="form-label"></label>
+            <input asp-for="Color" class="form-control" autocomplete="off" />
+            <span asp-validation-for="Color" class="text-danger"></span>
+        </div>
+    </div>
+</section>
+
+<section class="form-section">
+    <h2 class="h5">Schedule</h2>
+    <div class="row g-3">
+        <div class="col-md-3">
+            <label asp-for="AppointmentDate" class="form-label"></label>
+            <input asp-for="AppointmentDate" type="date" class="form-control" />
+            <span asp-validation-for="AppointmentDate" class="text-danger"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="AppointmentTime" class="form-label"></label>
+            <select asp-for="AppointmentTime" asp-items="Model.TimeOptions" class="form-select">
+                <option value="">Select time</option>
+            </select>
+            <span asp-validation-for="AppointmentTime" class="text-danger"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="ServiceType" class="form-label"></label>
+            <select asp-for="ServiceType" asp-items="Model.ServiceTypeOptions" class="form-select">
+                <option value="">Select service type</option>
+            </select>
+            <span asp-validation-for="ServiceType" class="text-danger"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="Status" class="form-label"></label>
+            <select asp-for="Status" asp-items="Model.StatusOptions" class="form-select">
+                <option value="">Select status</option>
+            </select>
+            <span asp-validation-for="Status" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="ReasonForVisit" class="form-label"></label>
+            <input asp-for="ReasonForVisit" class="form-control" />
+            <span asp-validation-for="ReasonForVisit" class="text-danger"></span>
+        </div>
+        <div class="col-12">
+            <label asp-for="Remarks" class="form-label"></label>
+            <textarea asp-for="Remarks" class="form-control" rows="4"></textarea>
+            <span asp-validation-for="Remarks" class="text-danger"></span>
+        </div>
+    </div>
+</section>

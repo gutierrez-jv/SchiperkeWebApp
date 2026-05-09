@@ -4,9 +4,9 @@
 
 <section class="home-hero">
     <div class="home-hero-copy">
-        <div class="eyebrow">Appointments, patient records, and preventive care</div>
+        <div class="eyebrow">PAWS: Schiperke Web App</div>
         <h1>Patient-Centered Veterinary Care Without Personal Data Exposure</h1>
-        <p>Book appointments quickly while authorized clinic staff manage pet records, consultations, vaccinations, and wellness care in a secure workspace.</p>
+        <p>Book pet visits publicly. Keep medical and wellness records available only to authorized clinic staff.</p>
         <div class="hero-actions">
             <a asp-controller="Appointments" asp-action="Book" class="btn btn-primary btn-lg">Schedule Your Visit</a>
             <a asp-controller="Home" asp-action="Contact" class="btn btn-outline-primary btn-lg">Contact Clinic</a>
@@ -25,7 +25,7 @@
     </div>
 </section>
 
-<section class="home-dashboard">
+<section class="home-dashboard home-dashboard-simple">
     <div class="dashboard-column quick-actions-column">
         <div class="section-heading">
             <h2>Quick Actions</h2>
@@ -34,7 +34,7 @@
             <a asp-controller="Appointments" asp-action="Book" class="action-card action-card-primary">
                 <span class="action-icon">01</span>
                 <strong>Book an Appointment</strong>
-                <span>Select date, time, and service.</span>
+                <span>Choose date, time, and service.</span>
                 <span class="action-link">Schedule Now</span>
             </a>
             @if (User.Identity?.IsAuthenticated == true)
@@ -42,7 +42,7 @@
                 <a asp-controller="Pets" asp-action="Index" class="action-card">
                     <span class="action-icon">02</span>
                     <strong>Patient Records</strong>
-                    <span>View signalment, visits, and medical records.</span>
+                    <span>View patient history.</span>
                     <span class="action-link">Access Records</span>
                 </a>
             }
@@ -51,68 +51,19 @@
                 <a asp-controller="Account" asp-action="Login" class="action-card">
                     <span class="action-icon">02</span>
                     <strong>Staff Portal</strong>
-                    <span>Secure access for clinic admin and staff.</span>
+                    <span>Secure clinic access.</span>
                     <span class="action-link">Sign In</span>
                 </a>
             }
             <a asp-controller="Home" asp-action="Contact" class="action-card">
                 <span class="action-icon">03</span>
                 <strong>Contact Page</strong>
-                <span>Find clinic contact details and booking reminders.</span>
+                <span>Find clinic contact details.</span>
                 <span class="action-link">View Contact</span>
             </a>
         </div>
     </div>
 
-    <div class="dashboard-column">
-        <div class="section-heading">
-            <h2>Clinic Workflow</h2>
-        </div>
-        <div class="appointment-preview">
-            <div class="preview-date">
-                <span>Today</span>
-                <strong>Open</strong>
-            </div>
-            <div>
-                <strong>Appointment requests are public.</strong>
-                <span>Requests only need the patient number, visit date, service type, and reason for visit.</span>
-            </div>
-        </div>
-        <div class="appointment-preview">
-            <div class="preview-date">
-                <span>Staff</span>
-                <strong>Only</strong>
-            </div>
-            <div>
-                <strong>Records stay protected.</strong>
-                <span>Pet records, consultations, vaccinations, wellness, and users require staff login.</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="dashboard-column">
-        <div class="section-heading">
-            <h2>Featured Services</h2>
-        </div>
-        <div class="service-grid">
-            <a asp-controller="Appointments" asp-action="Book" class="service-card">
-                <strong>Wellness Exams</strong>
-                <span>Routine wellness and preventive visits.</span>
-            </a>
-            <a asp-controller="Appointments" asp-action="Book" class="service-card">
-                <strong>Vaccinations</strong>
-                <span>Vaccination appointments and due-date tracking.</span>
-            </a>
-            <a asp-controller="Appointments" asp-action="Book" class="service-card">
-                <strong>Consultations</strong>
-                <span>Chief complaint, exam, assessment, and treatment.</span>
-            </a>
-            <a asp-controller="Appointments" asp-action="Book" class="service-card">
-                <strong>Wellness Care</strong>
-                <span>Deworming and antiparasitic medication records.</span>
-            </a>
-        </div>
-    </div>
 </section>
 
 <section class="requirement-strip">
@@ -140,8 +91,8 @@
         <div class="page-header">
             <div>
                 <div class="page-kicker">Staff Workspace</div>
-                <h2 class="h3 mb-0">Clinic Modules</h2>
-                <p class="page-subtitle">Open the records used for daily clinic work.</p>
+                <h2 class="h3 mb-0">PAWS Modules</h2>
+                <p class="page-subtitle">Daily clinic workspace.</p>
             </div>
         </div>
 
@@ -166,10 +117,13 @@
                 <strong>Wellness</strong>
                 <span>Deworming and preventive care records.</span>
             </a>
-            <a asp-controller="Users" asp-action="Index" class="module-card">
-                <strong>Users</strong>
-                <span>Admin and staff accounts.</span>
-            </a>
+            @if (User.IsInRole("Admin"))
+            {
+                <a asp-controller="Users" asp-action="Index" class="module-card">
+                    <strong>Users</strong>
+                    <span>Clinic accounts.</span>
+                </a>
+            }
         </div>
     </section>
 }

@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.Authorization;
+using System.Security.Claims;
 using SchiperkeWebApp.Models.Database;
 using SchiperkeWebApp.Repositories.Implementations;
 using SchiperkeWebApp.Repositories.Interfaces;
@@ -18,7 +20,7 @@ namespace SchiperkeWebApp
 
             var staffOnlyPolicy = new AuthorizationPolicyBuilder()
                 .RequireAuthenticatedUser()
-                .RequireRole("Admin", "Staff")
+                .RequireRole("Admin", "Staff", "Veterinarian")
                 .Build();
 
             // Add services to the container.
@@ -33,7 +35,32 @@ namespace SchiperkeWebApp
                 {
                     options.LoginPath = "/Account/Login";
                     options.AccessDeniedPath = "/Account/AccessDenied";
+                    options.ExpireTimeSpan = TimeSpan.FromHours(8);
                     options.SlidingExpiration = true;
+                    options.Cookie.HttpOnly = true;
+                    options.Cookie.SameSite = SameSiteMode.Lax;
+                    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                    options.Events = new CookieAuthenticationEvents
+                    {
+                        OnValidatePrincipal = async context =>
+                        {
+                            var userIdValue = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                            if (!int.TryParse(userIdValue, out var userId))
+                            {
+                                context.RejectPrincipal();
+                                await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                                return;
+                            }
+
+                            var userService = context.HttpContext.RequestServices.GetRequiredService<IUserService>();
+                            var user = await userService.GetByIdAsync(userId);
+                            if (user is null)
+                            {
+                                context.RejectPrincipal();
+                                await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                            }
+                        }
+                    };
                 });
 
             builder.Services.AddAuthorization();

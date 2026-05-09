@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using SchiperkeWebApp.Models.Database;
@@ -9,15 +10,18 @@ namespace SchiperkeWebApp.Controllers;
 public class WellnessRecordsController : Controller
 {
     private readonly IWellnessRecordService _wellnessRecordService;
+    private readonly IAppointmentService _appointmentService;
     private readonly IPetService _petService;
     private readonly IUserService _userService;
 
     public WellnessRecordsController(
         IWellnessRecordService wellnessRecordService,
+        IAppointmentService appointmentService,
         IPetService petService,
         IUserService userService)
     {
         _wellnessRecordService = wellnessRecordService;
+        _appointmentService = appointmentService;
         _petService = petService;
         _userService = userService;
     }
@@ -66,9 +70,12 @@ public class WellnessRecordsController : Controller
         return record is null ? NotFound() : View(record);
     }
 
-    public async Task<IActionResult> Create()
+    public async Task<IActionResult> Create(int? appointmentId)
     {
-        return View(await BuildFormAsync(new WellnessRecordFormViewModel()));
+        return View(await BuildFormAsync(new WellnessRecordFormViewModel
+        {
+            AppointmentId = appointmentId
+        }));
     }
 
     [HttpPost]
@@ -155,14 +162,94 @@ public class WellnessRecordsController : Controller
 
     private async Task<WellnessRecordFormViewModel> BuildFormAsync(WellnessRecordFormViewModel model)
     {
+        await ApplyAppointmentContextAsync(model);
+
+        var currentUserId = await ResolveCurrentUserIdAsync();
+        if (currentUserId.HasValue && model.RecordedByUserId == 0)
+        {
+            model.RecordedByUserId = currentUserId.Value;
+        }
+
         var pets = await _petService.GetAllAsync();
         var users = await _userService.GetAllAsync();
+        var appointments = await GetCompletedAppointmentOptionsAsync(model.AppointmentId);
 
         model.PetOptions = pets.Select(p => new SelectListItem($"{p.PatientNo} - {p.PetName}", p.PetId.ToString(), p.PetId == model.PetId));
+        model.AppointmentOptions = appointments.Select(a => new SelectListItem(BuildAppointmentLabel(a), a.AppointmentId.ToString(), a.AppointmentId == model.AppointmentId));
         model.UserOptions = users.Select(u => new SelectListItem($"{u.FullName} ({u.Role})", u.UserId.ToString(), u.UserId == model.RecordedByUserId));
         model.WellnessTypeOptions = BuildValueOptions(_wellnessRecordService.GetAllowedWellnessTypes(), model.WellnessType);
 
         return model;
+    }
+
+    private async Task ApplyAppointmentContextAsync(WellnessRecordFormViewModel model)
+    {
+        if (!model.AppointmentId.HasValue)
+        {
+            return;
+        }
+
+        var appointment = await _appointmentService.GetByIdAsync(model.AppointmentId.Value);
+        if (appointment?.PetId is null)
+        {
+            return;
+        }
+
+        if (model.PetId == 0)
+        {
+            model.PetId = appointment.PetId.Value;
+        }
+
+        if (model.WellnessId == 0)
+        {
+            model.DateGiven = appointment.AppointmentDate;
+            if (string.IsNullOrWhiteSpace(model.WellnessType) && IsWellnessServiceType(appointment.ServiceType))
+            {
+                model.WellnessType = appointment.ServiceType;
+            }
+        }
+    }
+
+    private async Task<IEnumerable<Appointment>> GetCompletedAppointmentOptionsAsync(int? selectedAppointmentId)
+    {
+        var appointments = await _appointmentService.GetAllAsync();
+        return appointments
+            .Where(a =>
+                a.PetId.HasValue &&
+                a.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase) &&
+                (IsWellnessServiceType(a.ServiceType) ||
+                 a.AppointmentId == selectedAppointmentId))
+            .OrderByDescending(a => a.AppointmentDate)
+            .ThenBy(a => a.AppointmentTime)
+            .ToList();
+    }
+
+    private async Task<int?> ResolveCurrentUserIdAsync()
+    {
+        var claimValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(claimValue, out var userId))
+        {
+            return null;
+        }
+
+        var user = await _userService.GetByIdAsync(userId);
+        return user is null ? null : userId;
+    }
+
+    private static bool IsWellnessServiceType(string serviceType)
+    {
+        return serviceType.Equals("Deworming", StringComparison.OrdinalIgnoreCase)
+            || serviceType.Equals("Internal Antiparasitic", StringComparison.OrdinalIgnoreCase)
+            || serviceType.Equals("External Antiparasitic", StringComparison.OrdinalIgnoreCase)
+            || serviceType.Equals("General Wellness", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string BuildAppointmentLabel(Appointment appointment)
+    {
+        var appointmentCode = appointment.AppointmentCode ?? $"APT-{appointment.AppointmentId:0000}";
+        var patientNo = appointment.PatientNoInput ?? appointment.Pet?.PatientNo ?? "No patient no";
+        var petName = appointment.PetName ?? appointment.Pet?.PetName ?? "Unnamed pet";
+        return $"{appointmentCode} - {patientNo} {petName} - {appointment.AppointmentDate:yyyy-MM-dd} {appointment.AppointmentTime:hh\\:mm tt}";
     }
 
     private static IEnumerable<SelectListItem> BuildValueOptions(IEnumerable<string> values, string? selectedValue)

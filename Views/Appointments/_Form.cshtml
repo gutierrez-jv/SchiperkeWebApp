@@ -5,6 +5,8 @@
 <input asp-for="CreatedByUserId" type="hidden" />
 <input asp-for="PetId" type="hidden" />
 <input asp-for="AppointmentCode" type="hidden" />
+<input asp-for="CancelledBy" type="hidden" />
+<input asp-for="CancelledAt" type="hidden" />
 
 @if (!string.IsNullOrWhiteSpace(Model.AppointmentCode))
 {
@@ -90,7 +92,7 @@
         </div>
         <div class="col-md-3">
             <label asp-for="Status" class="form-label"></label>
-            <select asp-for="Status" asp-items="Model.StatusOptions" class="form-select">
+            <select asp-for="Status" asp-items="Model.StatusOptions" class="form-select" id="Status">
                 <option value="">Select status</option>
             </select>
             <span asp-validation-for="Status" class="text-danger"></span>
@@ -105,5 +107,28 @@
             <textarea asp-for="Remarks" class="form-control" rows="4"></textarea>
             <span asp-validation-for="Remarks" class="text-danger"></span>
         </div>
+    </div>
+</section>
+
+<section class="form-section" id="cancellationSection">
+    <h2 class="h5">Cancellation</h2>
+    <p class="form-hint">Used only when the appointment status is Cancelled. This reason can be shown in public appointment tracking.</p>
+    <div class="row g-3">
+        <div class="col-12">
+            <label asp-for="CancellationReason" class="form-label"></label>
+            <textarea asp-for="CancellationReason" class="form-control" rows="3" maxlength="500"></textarea>
+            <span asp-validation-for="CancellationReason" class="text-danger"></span>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(Model.CancelledBy) || Model.CancelledAt.HasValue)
+        {
+            <div class="col-md-6">
+                <label class="form-label">Last Cancelled By</label>
+                <input value="@Model.CancelledBy" class="form-control" readonly />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Last Cancelled At</label>
+                <input value="@Model.CancelledAt?.ToString("yyyy-MM-dd HH:mm")" class="form-control" readonly />
+            </div>
+        }
     </div>
 </section>

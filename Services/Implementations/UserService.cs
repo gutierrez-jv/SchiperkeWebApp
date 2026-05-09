@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using SchiperkeWebApp.Models.Database;
 using SchiperkeWebApp.Repositories.Interfaces;
 using SchiperkeWebApp.Services.Interfaces;
@@ -6,7 +7,15 @@ namespace SchiperkeWebApp.Services.Implementations;
 
 public class UserService : IUserService
 {
+    private static readonly string[] AllowedRoles =
+    [
+        "Admin",
+        "Staff",
+        "Veterinarian"
+    ];
+
     private readonly IUserRepository _userRepository;
+    private readonly PasswordHasher<User> _passwordHasher = new();
 
     public UserService(IUserRepository userRepository)
     {
@@ -35,12 +44,12 @@ public class UserService : IUserService
 
     public async Task CreateAsync(User user)
     {
-        ValidateUser(user);
+        ValidateUser(user, requirePassword: true);
 
         user.Username = user.Username.Trim();
         user.FullName = user.FullName.Trim();
-        user.Role = user.Role.Trim();
-        user.PasswordHash = user.PasswordHash.Trim();
+        user.Role = NormalizeRole(user.Role);
+        user.PasswordHash = _passwordHasher.HashPassword(user, user.PasswordHash.Trim());
         user.IsActive = true;
 
         var existingUser = await _userRepository.GetByUsernameAsync(user.Username);
@@ -55,7 +64,7 @@ public class UserService : IUserService
 
     public async Task UpdateAsync(User user)
     {
-        ValidateUser(user);
+        ValidateUser(user, requirePassword: false);
 
         var existingUser = await _userRepository.GetByIdAsync(user.UserId);
         if (existingUser is null)
@@ -65,8 +74,10 @@ public class UserService : IUserService
 
         user.Username = user.Username.Trim();
         user.FullName = user.FullName.Trim();
-        user.Role = user.Role.Trim();
-        user.PasswordHash = user.PasswordHash.Trim();
+        user.Role = NormalizeRole(user.Role);
+        user.PasswordHash = string.IsNullOrWhiteSpace(user.PasswordHash)
+            ? existingUser.PasswordHash
+            : _passwordHasher.HashPassword(user, user.PasswordHash.Trim());
         user.IsActive = existingUser.IsActive;
         user.CreatedAt = existingUser.CreatedAt;
 
@@ -93,7 +104,7 @@ public class UserService : IUserService
         await _userRepository.SaveAsync();
     }
 
-    private static void ValidateUser(User user)
+    private static void ValidateUser(User user, bool requirePassword)
     {
         if (string.IsNullOrWhiteSpace(user.Username))
         {
@@ -110,9 +121,23 @@ public class UserService : IUserService
             throw new ArgumentException("Role is required.");
         }
 
-        if (string.IsNullOrWhiteSpace(user.PasswordHash))
+        if (requirePassword && string.IsNullOrWhiteSpace(user.PasswordHash))
         {
-            throw new ArgumentException("Password hash is required.");
+            throw new ArgumentException("Password is required.");
         }
+
+        _ = NormalizeRole(user.Role);
+    }
+
+    private static string NormalizeRole(string role)
+    {
+        var value = role.Trim();
+        var normalizedRole = AllowedRoles.FirstOrDefault(allowedRole => allowedRole.Equals(value, StringComparison.OrdinalIgnoreCase));
+        if (normalizedRole is null)
+        {
+            throw new ArgumentException("Role must be Admin, Staff, or Veterinarian.");
+        }
+
+        return normalizedRole;
     }
 }

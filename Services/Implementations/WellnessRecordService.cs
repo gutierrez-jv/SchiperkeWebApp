@@ -182,6 +182,25 @@ public class WellnessRecordService : IWellnessRecordService
             {
                 throw new InvalidOperationException("Wellness appointment does not belong to the selected pet.");
             }
+
+            if (!appointment.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Wellness records can only be linked to completed appointments.");
+            }
+
+            if (!IsWellnessServiceType(appointment.ServiceType))
+            {
+                throw new InvalidOperationException("Wellness records can only be linked to wellness, deworming, or antiparasitic appointments.");
+            }
+
+            var hasExistingRecord = await _wellnessRecordRepository.ExistsByAppointmentIdAsync(
+                appointment.AppointmentId,
+                wellnessRecord.WellnessId == 0 ? null : wellnessRecord.WellnessId);
+
+            if (hasExistingRecord)
+            {
+                throw new InvalidOperationException("This appointment already has a wellness record.");
+            }
         }
 
         if (wellnessRecord.NextDueDate.HasValue &&
@@ -210,6 +229,14 @@ public class WellnessRecordService : IWellnessRecordService
         }
 
         return normalizedValue;
+    }
+
+    private static bool IsWellnessServiceType(string serviceType)
+    {
+        return serviceType.Equals("Deworming", StringComparison.OrdinalIgnoreCase)
+            || serviceType.Equals("Internal Antiparasitic", StringComparison.OrdinalIgnoreCase)
+            || serviceType.Equals("External Antiparasitic", StringComparison.OrdinalIgnoreCase)
+            || serviceType.Equals("General Wellness", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string? CleanText(string? value)

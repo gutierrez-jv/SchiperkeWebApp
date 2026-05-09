@@ -8,6 +8,7 @@ public interface IConsultationRecordRepository
     Task<ConsultationRecord?> GetByIdAsync(int id);
     Task<List<ConsultationRecord>> GetByPetIdAsync(int petId);
     Task<List<ConsultationRecord>> GetByDateRangeAsync(DateTime startDate, DateTime endDate);
+    Task<bool> ExistsByAppointmentIdAsync(int appointmentId, int? excludingConsultationId = null);
     Task AddAsync(ConsultationRecord consultationRecord);
     void Update(ConsultationRecord consultationRecord);
     void Delete(ConsultationRecord consultationRecord);

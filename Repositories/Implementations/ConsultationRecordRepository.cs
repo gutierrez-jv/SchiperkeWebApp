@@ -57,6 +57,14 @@ public class ConsultationRecordRepository : IConsultationRecordRepository
             .ToListAsync();
     }
 
+    public async Task<bool> ExistsByAppointmentIdAsync(int appointmentId, int? excludingConsultationId = null)
+    {
+        return await _context.ConsultationRecords
+            .AnyAsync(c => !c.IsDeleted &&
+                           c.AppointmentId == appointmentId &&
+                           (!excludingConsultationId.HasValue || c.ConsultationId != excludingConsultationId.Value));
+    }
+
     public async Task AddAsync(ConsultationRecord consultationRecord)
     {
         await _context.ConsultationRecords.AddAsync(consultationRecord);

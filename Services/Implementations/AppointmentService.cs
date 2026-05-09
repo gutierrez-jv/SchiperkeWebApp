@@ -66,6 +66,27 @@ public class AppointmentService : IAppointmentService
         return await _appointmentRepository.GetByIdAsync(id);
     }
 
+    public async Task<Appointment?> GetPublicStatusAsync(string appointmentCode, string patientIdentifier)
+    {
+        if (string.IsNullOrWhiteSpace(appointmentCode))
+        {
+            throw new ArgumentException("Appointment code is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(patientIdentifier))
+        {
+            throw new ArgumentException("Patient number or pet name is required.");
+        }
+
+        var appointment = await FindAppointmentByPublicCodeAsync(appointmentCode);
+        if (appointment is null)
+        {
+            return null;
+        }
+
+        return MatchesPublicIdentifier(appointment, patientIdentifier) ? appointment : null;
+    }
+
     public async Task<List<Appointment>> GetByPetIdAsync(int petId)
     {
         return await _appointmentRepository.GetByPetIdAsync(petId);
@@ -87,11 +108,63 @@ public class AppointmentService : IAppointmentService
         return await _appointmentRepository.GetByStatusAsync(normalizedStatus);
     }
 
+    public async Task<Pet> RegisterPatientAsync(int appointmentId)
+    {
+        var appointment = await _appointmentRepository.GetByIdAsync(appointmentId);
+        if (appointment is null)
+        {
+            throw new InvalidOperationException("Appointment record was not found.");
+        }
+
+        if (appointment.PetId.HasValue)
+        {
+            throw new InvalidOperationException("This appointment is already linked to a registered patient.");
+        }
+
+        if (!CanRegisterPatient(appointment))
+        {
+            throw new InvalidOperationException("Only confirmed or completed new-patient appointments can be registered.");
+        }
+
+        var pet = new Pet
+        {
+            PatientNo = await GeneratePatientNoAsync(),
+            PetName = NormalizeRequiredText(appointment.PetName),
+            Species = NormalizeRequiredText(appointment.Species),
+            Breed = NormalizeOptionalText(appointment.Breed),
+            Sex = NormalizeRequiredText(appointment.Sex),
+            Color = NormalizeOptionalText(appointment.Color),
+            IsActive = true,
+            CreatedAt = DateTime.Now
+        };
+
+        ValidatePetRegistration(pet);
+
+        await _petRepository.AddAsync(pet);
+        await _petRepository.SaveAsync();
+
+        appointment.PetId = pet.PetId;
+        appointment.PatientNoInput = pet.PatientNo;
+        appointment.IsExistingPatient = true;
+        appointment.PetName = pet.PetName;
+        appointment.Species = pet.Species;
+        appointment.Breed = pet.Breed;
+        appointment.Sex = pet.Sex;
+        appointment.Color = pet.Color;
+        appointment.UpdatedAt = DateTime.Now;
+
+        _appointmentRepository.Update(appointment);
+        await _appointmentRepository.SaveAsync();
+
+        return pet;
+    }
+
     public async Task CreateAsync(Appointment appointment)
     {
         await ValidateAppointmentAsync(appointment);
 
         NormalizeAppointment(appointment);
+        ApplyCancellationState(appointment);
 
         if (appointment.CreatedAt == default)
         {
@@ -143,6 +216,10 @@ public class AppointmentService : IAppointmentService
             ? existingAppointment.Status
             : appointment.Status;
         existingAppointment.Remarks = appointment.Remarks;
+        existingAppointment.CancellationReason = appointment.CancellationReason;
+        existingAppointment.CancelledBy = appointment.CancelledBy;
+        existingAppointment.CancelledAt = appointment.CancelledAt;
+        ApplyCancellationState(existingAppointment);
         existingAppointment.CreatedByUserId = appointment.CreatedByUserId ?? existingAppointment.CreatedByUserId;
         existingAppointment.UpdatedAt = DateTime.Now;
 
@@ -165,6 +242,39 @@ public class AppointmentService : IAppointmentService
 
     private async Task ValidateAppointmentAsync(Appointment appointment)
     {
+        if (appointment.IsExistingPatient || !string.IsNullOrWhiteSpace(appointment.PatientNoInput))
+        {
+            var patientNo = NormalizeOptionalText(appointment.PatientNoInput);
+            if (patientNo is null)
+            {
+                throw new ArgumentException("Patient number is required for existing patients.");
+            }
+
+            var pet = await _petRepository.GetByPatientNoAsync(patientNo);
+            if (pet is null)
+            {
+                throw new InvalidOperationException("No active patient record was found for the provided patient number.");
+            }
+
+            ApplyExistingPatientDetails(appointment, pet);
+        }
+        else if (appointment.PetId.HasValue)
+        {
+            var pet = await _petRepository.GetByIdAsync(appointment.PetId.Value);
+            if (pet is null)
+            {
+                throw new InvalidOperationException("Linked pet record was not found.");
+            }
+
+            appointment.IsExistingPatient = true;
+            ApplyExistingPatientDetails(appointment, pet);
+        }
+        else
+        {
+            appointment.PetId = null;
+            appointment.PatientNoInput = null;
+        }
+
         if (string.IsNullOrWhiteSpace(appointment.PetName))
         {
             throw new ArgumentException("Pet name is required.");
@@ -243,6 +353,55 @@ public class AppointmentService : IAppointmentService
         appointment.Color = NormalizeOptionalText(appointment.Color);
         appointment.ReasonForVisit = NormalizeOptionalText(appointment.ReasonForVisit);
         appointment.Remarks = NormalizeOptionalText(appointment.Remarks);
+        appointment.CancellationReason = NormalizeCancellationReason(appointment.CancellationReason);
+    }
+
+    private static void ApplyExistingPatientDetails(Appointment appointment, Pet pet)
+    {
+        appointment.PetId = pet.PetId;
+        appointment.PatientNoInput = pet.PatientNo;
+        appointment.PetName = pet.PetName;
+        appointment.Species = pet.Species;
+        appointment.Breed = pet.Breed;
+        appointment.Sex = pet.Sex;
+        appointment.Color = pet.Color;
+    }
+
+    private async Task<string> GeneratePatientNoAsync()
+    {
+        var activePets = await _petRepository.GetAllAsync();
+        var nextNumber = activePets
+            .Select(p => TryParsePatientNumber(p.PatientNo))
+            .DefaultIfEmpty(0)
+            .Max() + 1;
+
+        string patientNo;
+        do
+        {
+            patientNo = $"PET-{nextNumber:0000}";
+            nextNumber++;
+        }
+        while (await _petRepository.PatientNoExistsAsync(patientNo));
+
+        return patientNo;
+    }
+
+    private static void ValidatePetRegistration(Pet pet)
+    {
+        if (string.IsNullOrWhiteSpace(pet.PetName))
+        {
+            throw new ArgumentException("Pet name is required before registering a patient.");
+        }
+
+        if (string.IsNullOrWhiteSpace(pet.Species))
+        {
+            throw new ArgumentException("Species is required before registering a patient.");
+        }
+
+        if (string.IsNullOrWhiteSpace(pet.Sex))
+        {
+            throw new ArgumentException("Sex is required before registering a patient.");
+        }
     }
 
     private static string NormalizeRequiredText(string? rawValue)
@@ -265,6 +424,94 @@ public class AppointmentService : IAppointmentService
         }
 
         return normalizedValue;
+    }
+
+    private async Task<Appointment?> FindAppointmentByPublicCodeAsync(string appointmentCode)
+    {
+        var normalizedCode = appointmentCode.Trim().ToUpperInvariant();
+        var appointment = await _appointmentRepository.GetByAppointmentCodeAsync(normalizedCode);
+        if (appointment is not null)
+        {
+            return appointment;
+        }
+
+        return TryGetAppointmentSequence(normalizedCode, out var appointmentId)
+            ? await _appointmentRepository.GetByIdAsync(appointmentId)
+            : null;
+    }
+
+    private static bool MatchesPublicIdentifier(Appointment appointment, string providedIdentifier)
+    {
+        var identifier = providedIdentifier.Trim();
+        var allowedIdentifiers = new[]
+        {
+            appointment.PatientNoInput,
+            appointment.Pet?.PatientNo,
+            appointment.PetName,
+            appointment.Pet?.PetName
+        };
+
+        return allowedIdentifiers.Any(value =>
+            !string.IsNullOrWhiteSpace(value)
+            && value.Trim().Equals(identifier, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool CanRegisterPatient(Appointment appointment)
+    {
+        return appointment.PetId is null
+            && IsRegisterableStatus(appointment.Status)
+            && !string.IsNullOrWhiteSpace(appointment.PetName)
+            && !string.IsNullOrWhiteSpace(appointment.Species)
+            && !string.IsNullOrWhiteSpace(appointment.Sex);
+    }
+
+    private static bool IsRegisterableStatus(string status)
+    {
+        return status.Equals("Confirmed", StringComparison.OrdinalIgnoreCase)
+            || status.Equals("Completed", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void ApplyCancellationState(Appointment appointment)
+    {
+        if (appointment.Status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase))
+        {
+            appointment.CancelledBy = string.IsNullOrWhiteSpace(appointment.CancelledBy)
+                ? "Clinic"
+                : appointment.CancelledBy.Trim();
+            appointment.CancelledAt ??= DateTime.Now;
+            return;
+        }
+
+        appointment.CancellationReason = null;
+        appointment.CancelledBy = null;
+        appointment.CancelledAt = null;
+    }
+
+    private static string? NormalizeCancellationReason(string? rawValue)
+    {
+        var value = NormalizeOptionalText(rawValue);
+        if (value is not null && value.Length > 500)
+        {
+            throw new ArgumentException("Cancellation reason must be 500 characters or fewer.");
+        }
+
+        return value;
+    }
+
+    private static bool TryGetAppointmentSequence(string appointmentCode, out int appointmentId)
+    {
+        var lastDashIndex = appointmentCode.LastIndexOf('-');
+        var sequenceText = lastDashIndex >= 0
+            ? appointmentCode[(lastDashIndex + 1)..]
+            : new string(appointmentCode.Where(char.IsDigit).ToArray());
+
+        return int.TryParse(sequenceText, out appointmentId) && appointmentId > 0;
+    }
+
+    private static int TryParsePatientNumber(string patientNo)
+    {
+        var digits = new string(patientNo.Where(char.IsDigit).ToArray());
+        return int.TryParse(digits, out var number) ? number : 0;
     }
 
     private static string BuildAppointmentCode(Appointment appointment)

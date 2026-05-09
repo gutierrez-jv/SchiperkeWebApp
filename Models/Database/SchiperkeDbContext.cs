@@ -35,9 +35,6 @@ public partial class SchiperkeDbContext : DbContext
 
     public virtual DbSet<WellnessRecordsArchive> WellnessRecordsArchives { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        => optionsBuilder.UseSqlServer("Server=DESKTOP-TM6EI00;Database=SchiperkeDb;Trusted_Connection=True;TrustServerCertificate=True");
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Appointment>(entity =>
@@ -56,6 +53,8 @@ public partial class SchiperkeDbContext : DbContext
 
             entity.Property(e => e.AppointmentCode).HasMaxLength(30);
             entity.Property(e => e.Breed).HasMaxLength(100);
+            entity.Property(e => e.CancellationReason).HasMaxLength(500);
+            entity.Property(e => e.CancelledBy).HasMaxLength(30);
             entity.Property(e => e.Color).HasMaxLength(50);
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")

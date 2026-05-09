@@ -4,11 +4,17 @@
     ViewData["Title"] = "Create Wellness Record";
 }
 
-<h1>Create Wellness Record</h1>
+<div class="page-header">
+    <div>
+        <div class="page-kicker">Wellness Services</div>
+        <h1>Create Wellness Record</h1>
+        <p class="page-subtitle">Record deworming, antiparasitic, and general wellness care.</p>
+    </div>
+</div>
 
 <form asp-action="Create" method="post">
     <partial name="_Form" model="Model" />
-    <div class="mt-4 d-flex gap-2">
+    <div class="mt-4 form-actions">
         <button type="submit" class="btn btn-primary">Save</button>
         <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
     </div>

@@ -43,6 +43,8 @@ public class WellnessRecordFormViewModel
 
     public IEnumerable<SelectListItem> PetOptions { get; set; } = [];
 
+    public IEnumerable<SelectListItem> AppointmentOptions { get; set; } = [];
+
     public IEnumerable<SelectListItem> UserOptions { get; set; } = [];
 
     public IEnumerable<SelectListItem> WellnessTypeOptions { get; set; } = [];

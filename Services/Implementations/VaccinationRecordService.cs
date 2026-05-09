@@ -145,6 +145,25 @@ public class VaccinationRecordService : IVaccinationRecordService
             {
                 throw new InvalidOperationException("Vaccination appointment does not belong to the selected pet.");
             }
+
+            if (!appointment.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Vaccination records can only be linked to completed appointments.");
+            }
+
+            if (!appointment.ServiceType.Equals("Vaccination", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Vaccination records can only be linked to vaccination appointments.");
+            }
+
+            var hasExistingRecord = await _vaccinationRecordRepository.ExistsByAppointmentIdAsync(
+                appointment.AppointmentId,
+                vaccinationRecord.VaccinationId == 0 ? null : vaccinationRecord.VaccinationId);
+
+            if (hasExistingRecord)
+            {
+                throw new InvalidOperationException("This appointment already has a vaccination record.");
+            }
         }
 
         if (vaccinationRecord.NextDueDate.HasValue &&

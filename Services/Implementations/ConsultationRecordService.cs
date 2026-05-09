@@ -141,6 +141,25 @@ public class ConsultationRecordService : IConsultationRecordService
             {
                 throw new InvalidOperationException("Consultation appointment does not belong to the selected pet.");
             }
+
+            if (!appointment.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Consultation records can only be linked to completed appointments.");
+            }
+
+            if (!appointment.ServiceType.Equals("Consultation", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Consultation records can only be linked to consultation appointments.");
+            }
+
+            var hasExistingRecord = await _consultationRecordRepository.ExistsByAppointmentIdAsync(
+                appointment.AppointmentId,
+                consultationRecord.ConsultationId == 0 ? null : consultationRecord.ConsultationId);
+
+            if (hasExistingRecord)
+            {
+                throw new InvalidOperationException("This appointment already has a consultation record.");
+            }
         }
 
         if (!HasConsultationContent(consultationRecord))

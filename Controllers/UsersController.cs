@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SchiperkeWebApp.Models.Database;
 using SchiperkeWebApp.Models.ViewModels;
@@ -5,6 +6,7 @@ using SchiperkeWebApp.Services.Interfaces;
 
 namespace SchiperkeWebApp.Controllers;
 
+[Authorize(Roles = "Admin")]
 public class UsersController : Controller
 {
     private readonly IUserService _userService;
@@ -123,7 +125,7 @@ public class UsersController : Controller
         {
             UserId = user.UserId,
             Username = user.Username,
-            PasswordHash = user.PasswordHash,
+            PasswordHash = string.Empty,
             FullName = user.FullName,
             Role = user.Role
         };

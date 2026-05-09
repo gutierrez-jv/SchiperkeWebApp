@@ -59,6 +59,16 @@ public class AppointmentFormViewModel
 
     public string? Remarks { get; set; }
 
+    [Display(Name = "Cancellation Reason")]
+    [StringLength(500)]
+    public string? CancellationReason { get; set; }
+
+    [Display(Name = "Cancelled By")]
+    public string? CancelledBy { get; set; }
+
+    [Display(Name = "Cancelled At")]
+    public DateTime? CancelledAt { get; set; }
+
     [Display(Name = "Created By")]
     public int? CreatedByUserId { get; set; }
 

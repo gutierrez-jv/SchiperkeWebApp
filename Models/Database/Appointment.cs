@@ -45,6 +45,12 @@ public partial class Appointment
 
     public DateTime? UpdatedAt { get; set; }
 
+    public string? CancellationReason { get; set; }
+
+    public string? CancelledBy { get; set; }
+
+    public DateTime? CancelledAt { get; set; }
+
     public virtual ICollection<ConsultationRecord> ConsultationRecords { get; set; } = new List<ConsultationRecord>();
 
     public virtual User? CreatedByUser { get; set; }

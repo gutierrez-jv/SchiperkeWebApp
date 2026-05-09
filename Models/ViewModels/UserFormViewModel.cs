@@ -10,8 +10,8 @@ public class UserFormViewModel
     [Display(Name = "Username")]
     public string Username { get; set; } = string.Empty;
 
-    [Required]
-    [Display(Name = "Password Hash")]
+    [DataType(DataType.Password)]
+    [Display(Name = "Password")]
     public string PasswordHash { get; set; } = string.Empty;
 
     [Required]

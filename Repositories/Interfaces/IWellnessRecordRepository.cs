@@ -10,6 +10,7 @@ public interface IWellnessRecordRepository
     Task<List<WellnessRecord>> GetByWellnessTypeAsync(string wellnessType);
     Task<List<WellnessRecord>> GetUpcomingDueAsync();
     Task<List<WellnessRecord>> GetOverdueAsync();
+    Task<bool> ExistsByAppointmentIdAsync(int appointmentId, int? excludingWellnessId = null);
     Task AddAsync(WellnessRecord wellnessRecord);
     void Update(WellnessRecord wellnessRecord);
     void Delete(WellnessRecord wellnessRecord);

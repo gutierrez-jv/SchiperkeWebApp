@@ -15,6 +15,16 @@
     </div>
 </div>
 
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert-success" role="alert">@successMessage</div>
+}
+
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger" role="alert">@errorMessage</div>
+}
+
 <form method="get" class="search-panel">
     <div class="row g-2 align-items-end">
         <div class="col-md-3">
@@ -59,7 +69,6 @@
                     <th>Service</th>
                     <th>Status</th>
                     <th>Reason</th>
-                    <th>Created By</th>
                     <th class="text-end">Actions</th>
                 </tr>
             </thead>
@@ -67,7 +76,7 @@
             @if (!Model.Any())
             {
                 <tr>
-                    <td colspan="10" class="empty-state">No appointments found.</td>
+                    <td colspan="9" class="empty-state">No appointments found.</td>
                 </tr>
             }
             else
@@ -78,6 +87,12 @@
                     var patientNo = item.PatientNoInput ?? item.Pet?.PatientNo ?? "New patient";
                     var petName = item.PetName ?? item.Pet?.PetName ?? "Unnamed pet";
                     var speciesBreed = string.Join(" / ", new[] { item.Species ?? item.Pet?.Species, item.Breed ?? item.Pet?.Breed }.Where(value => !string.IsNullOrWhiteSpace(value)));
+                    var canRegisterPatient = item.PetId is null
+                        && (item.Status.Equals("Confirmed", StringComparison.OrdinalIgnoreCase)
+                            || item.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+                        && !string.IsNullOrWhiteSpace(item.PetName)
+                        && !string.IsNullOrWhiteSpace(item.Species)
+                        && !string.IsNullOrWhiteSpace(item.Sex);
                     <tr>
                         <td><strong>@appointmentCode</strong></td>
                         <td>@patientNo</td>
@@ -91,13 +106,18 @@
                         <td>@item.AppointmentDate.ToString("yyyy-MM-dd")</td>
                         <td>@item.AppointmentTime.ToString("hh:mm tt")</td>
                         <td>@item.ServiceType</td>
-                        <td><span class="status-badge">@item.Status</span></td>
+                        <td><span class="status-badge status-@item.Status.ToLowerInvariant().Replace(" ", "-")">@item.Status</span></td>
                         <td>@item.ReasonForVisit</td>
-                        <td>@(item.CreatedByUser?.FullName ?? "Public booking")</td>
                         <td class="text-end action-cell">
+                            @if (canRegisterPatient)
+                            {
+                                <form asp-action="RegisterPatient" asp-route-id="@item.AppointmentId" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-success">Register</button>
+                                </form>
+                            }
                             <a asp-action="Details" asp-route-id="@item.AppointmentId" class="btn btn-sm btn-outline-secondary">Details</a>
                             <a asp-action="Edit" asp-route-id="@item.AppointmentId" class="btn btn-sm btn-outline-primary">Edit</a>
-                            <a asp-action="Delete" asp-route-id="@item.AppointmentId" class="btn btn-sm btn-outline-danger">Deactivate</a>
+                            <a asp-action="Delete" asp-route-id="@item.AppointmentId" class="btn btn-sm btn-outline-danger">Delete</a>
                         </td>
                     </tr>
                 }

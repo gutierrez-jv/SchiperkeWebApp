@@ -9,13 +9,25 @@ document.addEventListener("DOMContentLoaded", () => {
   updateHeader();
   window.addEventListener("scroll", updateHeader, { passive: true });
 
-  nav?.querySelectorAll("a.nav-link").forEach((link) => {
+  nav?.querySelectorAll("a.nav-link, .dropdown-item").forEach((link) => {
     link.addEventListener("click", () => {
-      if (window.innerWidth >= 992 || !nav.classList.contains("show") || !window.bootstrap) {
+      if (window.innerWidth >= 1200 || !nav.classList.contains("show") || !window.bootstrap) {
         return;
       }
 
       window.bootstrap.Collapse.getOrCreateInstance(nav).hide();
     });
   });
+
+  const appointmentStatusSelect = document.getElementById("Status");
+  const cancellationSection = document.getElementById("cancellationSection");
+
+  if (appointmentStatusSelect && cancellationSection) {
+    const syncCancellationSection = () => {
+      cancellationSection.hidden = appointmentStatusSelect.value !== "Cancelled";
+    };
+
+    appointmentStatusSelect.addEventListener("change", syncCancellationSection);
+    syncCancellationSection();
+  }
 });

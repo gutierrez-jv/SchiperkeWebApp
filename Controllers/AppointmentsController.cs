@@ -11,13 +11,16 @@ namespace SchiperkeWebApp.Controllers;
 public class AppointmentsController : Controller
 {
     private readonly IAppointmentService _appointmentService;
+    private readonly IPetService _petService;
     private readonly IUserService _userService;
 
     public AppointmentsController(
         IAppointmentService appointmentService,
+        IPetService petService,
         IUserService userService)
     {
         _appointmentService = appointmentService;
+        _petService = petService;
         _userService = userService;
     }
 
@@ -144,6 +147,36 @@ public class AppointmentsController : Controller
     }
 
     [AllowAnonymous]
+    [HttpGet]
+    public async Task<IActionResult> VerifyPatientNumber(string? patientNo)
+    {
+        if (string.IsNullOrWhiteSpace(patientNo))
+        {
+            return BadRequest(new
+            {
+                found = false,
+                message = "Enter a patient number first."
+            });
+        }
+
+        var pet = await _petService.GetByPatientNoAsync(patientNo.Trim());
+        if (pet is null)
+        {
+            return Ok(new
+            {
+                found = false,
+                message = "No active patient record was found for this number. Check the code or book as a new patient."
+            });
+        }
+
+        return Ok(new
+        {
+            found = true,
+            message = "Patient number verified. Continue booking with this code."
+        });
+    }
+
+    [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Book(PublicAppointmentRequestViewModel model)
@@ -178,7 +211,7 @@ public class AppointmentsController : Controller
 
             TempData["AppointmentCode"] = appointment.AppointmentCode;
             TempData["PatientNoInput"] = appointment.PatientNoInput;
-            TempData["PetName"] = appointment.PetName;
+            TempData["PetName"] = appointment.IsExistingPatient ? "Existing patient record" : appointment.PetName;
             TempData["AppointmentDate"] = appointment.AppointmentDate.ToString("yyyy-MM-dd");
             TempData["AppointmentTime"] = appointment.AppointmentTime.ToString("hh:mm tt");
             TempData["ServiceType"] = appointment.ServiceType;
@@ -196,6 +229,44 @@ public class AppointmentsController : Controller
     public IActionResult Confirmation()
     {
         return View();
+    }
+
+    [AllowAnonymous]
+    [HttpGet]
+    public async Task<IActionResult> CheckAppointmentStatus(string? appointmentCode, string? patientIdentifier)
+    {
+        if (string.IsNullOrWhiteSpace(appointmentCode) || string.IsNullOrWhiteSpace(patientIdentifier))
+        {
+            return BadRequest(new
+            {
+                found = false,
+                message = "Enter both the appointment code and patient number or pet name."
+            });
+        }
+
+        var appointment = await _appointmentService.GetPublicStatusAsync(appointmentCode, patientIdentifier);
+        if (appointment is null)
+        {
+            return Ok(new
+            {
+                found = false,
+                message = "No matching appointment was found. Check the appointment code and patient identifier."
+            });
+        }
+
+        return Ok(new
+        {
+            found = true,
+            appointmentCode = GetAppointmentCode(appointment),
+            status = appointment.Status,
+            schedule = $"{appointment.AppointmentDate:MMM dd, yyyy} {appointment.AppointmentTime:hh\\:mm tt}",
+            serviceType = appointment.ServiceType,
+            message = BuildPublicStatusMessage(appointment),
+            cancellationReason = appointment.CancellationReason,
+            cancelledBy = appointment.CancelledBy,
+            cancelledAt = appointment.CancelledAt?.ToString("MMM dd, yyyy hh:mm tt"),
+            isPast = IsPastAppointment(appointment)
+        });
     }
 
     public async Task<IActionResult> Edit(int? id)
@@ -263,6 +334,23 @@ public class AppointmentsController : Controller
     {
         await _appointmentService.DeleteAsync(id);
         return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RegisterPatient(int id)
+    {
+        try
+        {
+            var pet = await _appointmentService.RegisterPatientAsync(id);
+            TempData["SuccessMessage"] = $"Patient registered successfully with patient number {pet.PatientNo}.";
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
+
+        return RedirectToAction(nameof(Details), new { id });
     }
 
     private async Task<AppointmentFormViewModel> BuildAppointmentFormAsync(AppointmentFormViewModel model)
@@ -352,6 +440,9 @@ public class AppointmentsController : Controller
             ReasonForVisit = appointment.ReasonForVisit,
             Status = appointment.Status,
             Remarks = appointment.Remarks,
+            CancellationReason = appointment.CancellationReason,
+            CancelledBy = appointment.CancelledBy,
+            CancelledAt = appointment.CancelledAt,
             CreatedByUserId = appointment.CreatedByUserId,
             CreatedByDisplayName = appointment.CreatedByUser?.FullName
         };
@@ -377,7 +468,57 @@ public class AppointmentsController : Controller
             ReasonForVisit = model.ReasonForVisit,
             Status = model.Status,
             Remarks = model.Remarks,
+            CancellationReason = model.CancellationReason,
+            CancelledBy = model.CancelledBy,
+            CancelledAt = model.CancelledAt,
             CreatedByUserId = model.CreatedByUserId
         };
+    }
+
+    private static string GetAppointmentCode(Appointment appointment)
+    {
+        return appointment.AppointmentCode ?? $"APT-{appointment.AppointmentId:0000}";
+    }
+
+    private static bool IsPastAppointment(Appointment appointment)
+    {
+        return appointment.AppointmentDate < DateOnly.FromDateTime(DateTime.Today);
+    }
+
+    private static string BuildPublicStatusMessage(Appointment appointment)
+    {
+        if (appointment.Status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase))
+        {
+            return string.IsNullOrWhiteSpace(appointment.CancellationReason)
+                ? "This appointment was cancelled."
+                : $"This appointment was cancelled. Reason: {appointment.CancellationReason}";
+        }
+
+        if (appointment.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+        {
+            return "This appointment has already been completed.";
+        }
+
+        if (appointment.Status.Equals("No-Show", StringComparison.OrdinalIgnoreCase))
+        {
+            return "This appointment was marked as no-show.";
+        }
+
+        if (IsPastAppointment(appointment))
+        {
+            return "This appointment date has already passed. Please contact the clinic or book another appointment.";
+        }
+
+        if (appointment.Status.Equals("Confirmed", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Your appointment is confirmed. Please come at the scheduled time.";
+        }
+
+        if (appointment.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Your appointment is waiting for clinic confirmation.";
+        }
+
+        return "Appointment status found.";
     }
 }

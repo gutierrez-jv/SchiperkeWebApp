@@ -1,15 +1,15 @@
 @model Appointment
 
 @{
-    ViewData["Title"] = "Deactivate Appointment";
+    ViewData["Title"] = "Delete Appointment";
     var appointmentCode = Model.AppointmentCode ?? $"APT-{Model.AppointmentId:0000}";
     var patientNo = Model.PatientNoInput ?? Model.Pet?.PatientNo ?? "New patient";
     var petName = Model.PetName ?? Model.Pet?.PetName ?? "Unnamed pet";
 }
 
-<h1>Deactivate Appointment</h1>
+<h1>Delete Appointment</h1>
 <div class="soft-delete-note">
-    Are you sure you want to deactivate/archive this appointment? This appointment will not be permanently deleted and will only be hidden from normal lists.
+    Are you sure you want to delete this appointment? This appointment will not be permanently removed and will only be hidden from normal lists.
 </div>
 
 <dl class="row">
@@ -29,6 +29,6 @@
 
 <form asp-action="Delete" method="post">
     <input type="hidden" asp-for="AppointmentId" />
-    <button type="submit" class="btn btn-danger">Deactivate</button>
+    <button type="submit" class="btn btn-danger">Delete</button>
     <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
 </form>

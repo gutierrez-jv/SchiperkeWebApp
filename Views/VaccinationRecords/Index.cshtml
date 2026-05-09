@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "Vaccination Records";
+    var dueFilter = ViewData["DueFilter"]?.ToString();
 }
 
 <div class="page-header">
@@ -27,8 +28,8 @@
             <label class="form-label" for="dueFilter">Due Date</label>
             <select id="dueFilter" name="dueFilter" class="form-select">
                 <option value="">All records</option>
-                <option value="upcoming" selected="@(ViewData["DueFilter"]?.ToString() == "upcoming")">Due within 30 days</option>
-                <option value="overdue" selected="@(ViewData["DueFilter"]?.ToString() == "overdue")">Overdue</option>
+                <option value="upcoming" selected="@(dueFilter == "upcoming" ? "selected" : null)">Due within 30 days</option>
+                <option value="overdue" selected="@(dueFilter == "overdue" ? "selected" : null)">Overdue</option>
             </select>
         </div>
         <div class="col-md-2">
@@ -65,15 +66,15 @@
                 @foreach (var item in Model)
                 {
                     <tr>
-                        <td>@item.Pet.PatientNo - @item.Pet.PetName</td>
+                        <td>@(item.Pet?.PatientNo ?? "No patient no") - @(item.Pet?.PetName ?? "Unknown pet")</td>
                         <td><strong>@item.VaccineName</strong></td>
                         <td>@item.DateGiven.ToString("yyyy-MM-dd")</td>
-                        <td>@item.NextDueDate?.ToString("yyyy-MM-dd")</td>
-                        <td>@item.RecordedByUser.FullName</td>
+                        <td>@(item.NextDueDate?.ToString("yyyy-MM-dd") ?? "Not set")</td>
+                        <td>@(item.RecordedByUser?.FullName ?? "Not recorded")</td>
                         <td class="text-end action-cell">
                             <a asp-action="Details" asp-route-id="@item.VaccinationId" class="btn btn-sm btn-outline-secondary">Details</a>
                             <a asp-action="Edit" asp-route-id="@item.VaccinationId" class="btn btn-sm btn-outline-primary">Edit</a>
-                            <a asp-action="Delete" asp-route-id="@item.VaccinationId" class="btn btn-sm btn-outline-danger">Deactivate</a>
+                            <a asp-action="Delete" asp-route-id="@item.VaccinationId" class="btn btn-sm btn-outline-danger">Delete</a>
                         </td>
                     </tr>
                 }

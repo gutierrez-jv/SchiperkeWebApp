@@ -43,9 +43,9 @@ public class AccountController : Controller
         }
 
         var role = NormalizeRole(user.Role);
-        if (role is not ("Admin" or "Staff"))
+        if (role is not ("Admin" or "Staff" or "Veterinarian"))
         {
-            ModelState.AddModelError(string.Empty, "Only admin or staff accounts can sign in.");
+            ModelState.AddModelError(string.Empty, "Only authorized clinic staff accounts can sign in.");
             return View(model);
         }
 
@@ -110,6 +110,12 @@ public class AccountController : Controller
         if (role.Equals("staff", StringComparison.OrdinalIgnoreCase))
         {
             return "Staff";
+        }
+
+        if (role.Equals("veterinarian", StringComparison.OrdinalIgnoreCase)
+            || role.Equals("vet", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Veterinarian";
         }
 
         return role.Trim();

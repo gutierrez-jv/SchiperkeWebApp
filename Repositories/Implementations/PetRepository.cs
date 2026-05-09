@@ -33,6 +33,12 @@ public class PetRepository : IPetRepository
             .FirstOrDefaultAsync(p => p.PatientNo == patientNo && p.IsActive);
     }
 
+    public async Task<bool> PatientNoExistsAsync(string patientNo)
+    {
+        return await _context.Pets
+            .AnyAsync(p => p.PatientNo == patientNo);
+    }
+
     public async Task<List<Pet>> SearchAsync(string searchTerm)
     {
         if (string.IsNullOrWhiteSpace(searchTerm))

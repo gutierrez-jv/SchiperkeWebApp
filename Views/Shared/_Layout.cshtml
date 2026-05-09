@@ -5,6 +5,14 @@
     var isContact = currentController == "Home" && currentAction == "Contact";
     var isPublicBooking = currentController == "Appointments" && currentAction == "Book";
     var isStaffAppointments = currentController == "Appointments" && currentAction != "Book" && currentAction != "Confirmation";
+    var isConsultations = currentController == "ConsultationRecords";
+    var isVaccinations = currentController == "VaccinationRecords";
+    var isWellness = currentController == "WellnessRecords";
+    var isRecords = currentController == "Pets"
+        || currentController == "ConsultationRecords"
+        || currentController == "VaccinationRecords"
+        || currentController == "WellnessRecords"
+        || currentController == "Users";
 }
 
 <!DOCTYPE html>
@@ -12,7 +20,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Schiperke Veterinary Clinic</title>
+    <title>@ViewData["Title"] - PAWS</title>
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -20,7 +28,7 @@
 </head>
 <body>
     <header class="app-header">
-        <nav class="navbar navbar-expand-lg app-navbar">
+        <nav class="navbar navbar-expand-xl app-navbar">
             <div class="container-fluid app-nav-container">
                 <a class="navbar-brand app-brand" asp-area="" asp-controller="Home" asp-action="Index">
                     <span class="brand-mark" aria-hidden="true">
@@ -30,8 +38,8 @@
                         <span class="paw-pad"></span>
                     </span>
                     <span>
-                        <span class="brand-name">Schiperke</span>
-                        <span class="brand-subtitle">Veterinary Clinic</span>
+                        <span class="brand-name">PAWS</span>
+                        <span class="brand-subtitle">Schiperke Web App</span>
                     </span>
                 </a>
                 <button class="navbar-toggler app-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavigation" aria-controls="mainNavigation"
@@ -57,11 +65,21 @@
                             <li class="nav-item">
                                 <a class="nav-link @(isStaffAppointments ? "active" : "")" asp-area="" asp-controller="Appointments" asp-action="Index">Appointments</a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link @(currentController == "Pets" ? "active" : "")" asp-area="" asp-controller="Pets" asp-action="Index">Patients</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link @(currentController == "Users" ? "active" : "")" asp-area="" asp-controller="Users" asp-action="Index">Users</a>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle @(isRecords ? "active" : "")" href="#" id="recordsMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Records
+                                </a>
+                                <ul class="dropdown-menu app-dropdown" aria-labelledby="recordsMenu">
+                                    <li><a class="dropdown-item @(currentController == "Pets" ? "active" : "")" asp-controller="Pets" asp-action="Index">Patients</a></li>
+                                    <li><a class="dropdown-item @(isConsultations ? "active" : "")" asp-controller="ConsultationRecords" asp-action="Index">Consultations</a></li>
+                                    <li><a class="dropdown-item @(isVaccinations ? "active" : "")" asp-controller="VaccinationRecords" asp-action="Index">Vaccinations</a></li>
+                                    <li><a class="dropdown-item @(isWellness ? "active" : "")" asp-controller="WellnessRecords" asp-action="Index">Wellness</a></li>
+                                    @if (User.IsInRole("Admin"))
+                                    {
+                                        <li><hr class="dropdown-divider" /></li>
+                                        <li><a class="dropdown-item @(currentController == "Users" ? "active" : "")" asp-controller="Users" asp-action="Index">Users</a></li>
+                                    }
+                                </ul>
                             </li>
                         }
                     </ul>
@@ -101,7 +119,7 @@
                     <span class="paw-toe toe-three"></span>
                     <span class="paw-pad"></span>
                 </span>
-                <span>Schiperke Veterinary Clinic</span>
+                <span>PAWS</span>
             </a>
             <div class="footer-links">
                 <a asp-controller="Appointments" asp-action="Book">Book Appointment</a>
@@ -109,12 +127,14 @@
                 @if (User.Identity?.IsAuthenticated == true)
                 {
                     <a asp-controller="Dashboard" asp-action="Index">Dashboard</a>
+                    <a asp-controller="Appointments" asp-action="Index">Appointments</a>
+                    <a asp-controller="Pets" asp-action="Index">Patients</a>
                 }
                 else
                 {
                     <a asp-controller="Account" asp-action="Login">Staff Login</a>
                 }
-                <span>Pet-centered records only</span>
+                <span>Schiperke Web App</span>
             </div>
         </div>
     </footer>

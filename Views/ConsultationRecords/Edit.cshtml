@@ -4,12 +4,18 @@
     ViewData["Title"] = "Edit Consultation Record";
 }
 
-<h1>Edit Consultation Record</h1>
+<div class="page-header">
+    <div>
+        <div class="page-kicker">Health Services</div>
+        <h1>Edit Consultation Record</h1>
+        <p class="page-subtitle">Update clinical notes without changing unrelated patient information.</p>
+    </div>
+</div>
 
 <form asp-action="Edit" method="post">
     <input asp-for="ConsultationId" type="hidden" />
     <partial name="_Form" model="Model" />
-    <div class="mt-4 d-flex gap-2">
+    <div class="mt-4 form-actions">
         <button type="submit" class="btn btn-primary">Save Changes</button>
         <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
     </div>

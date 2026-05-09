@@ -17,9 +17,17 @@
   --clinic-radius: 14px;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 html {
   font-size: 14px;
   min-height: 100%;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 @media (min-width: 768px) {
@@ -29,6 +37,8 @@ html {
 }
 
 body {
+  width: 100%;
+  max-width: 100%;
   min-height: 100vh;
   margin: 0;
   color: var(--clinic-ink);
@@ -36,6 +46,24 @@ body {
     radial-gradient(circle at top left, rgba(47, 125, 82, 0.1), transparent 24rem),
     linear-gradient(180deg, #fbf8f3 0%, #f4efe7 52%, #fff 100%);
   font-family: "Segoe UI", "Aptos", Tahoma, sans-serif;
+  overflow-x: hidden;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
 }
 
 @keyframes fadeSlideUp {
@@ -91,6 +119,7 @@ a:hover {
 .app-nav-container,
 .app-content,
 .app-footer-inner {
+  width: 100%;
   max-width: 1260px;
   margin: 0 auto;
   padding-left: clamp(1rem, 3vw, 2rem);
@@ -213,6 +242,7 @@ a:hover {
   gap: 0.2rem;
   margin-left: clamp(1rem, 2vw, 2rem);
   align-items: center;
+  min-width: 0;
 }
 
 .app-nav-links .nav-link,
@@ -242,11 +272,36 @@ a:hover {
   color: #fff;
 }
 
+.app-dropdown {
+  border: 1px solid var(--clinic-line);
+  border-radius: var(--clinic-radius);
+  padding: 0.45rem;
+  box-shadow: var(--clinic-shadow-soft);
+}
+
+.app-dropdown .dropdown-item {
+  border-radius: calc(var(--clinic-radius) - 5px);
+  color: var(--clinic-ink);
+  font-weight: 750;
+  padding: 0.55rem 0.75rem;
+}
+
+.app-dropdown .dropdown-item:hover,
+.app-dropdown .dropdown-item.active {
+  color: var(--clinic-primary-dark);
+  background: var(--clinic-primary-soft);
+}
+
 .app-user-area {
   display: flex;
   align-items: center;
   gap: 0.65rem;
   margin-left: auto;
+  min-width: 0;
+}
+
+.app-user-area form {
+  margin: 0;
 }
 
 .signed-in-chip {
@@ -280,6 +335,11 @@ a:hover {
 .app-main {
   min-height: calc(100vh - 9rem);
   padding-bottom: clamp(1.75rem, 4vw, 3rem);
+  overflow-x: hidden;
+}
+
+.app-content {
+  min-width: 0;
 }
 
 .app-content > * {
@@ -350,10 +410,11 @@ a:hover {
   max-width: 42rem;
   margin-bottom: 0.75rem;
   color: #2a140b;
-  font-size: clamp(2.15rem, 4.4vw, 4rem);
+  font-size: clamp(2rem, 4.2vw, 4rem);
   font-weight: 900;
-  line-height: 0.98;
+  line-height: 1.02;
   letter-spacing: 0;
+  overflow-wrap: anywhere;
 }
 
 .home-hero-copy p {
@@ -393,6 +454,7 @@ a:hover {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
+  min-width: 0;
 }
 
 .hero-actions {
@@ -406,12 +468,17 @@ a:hover {
   padding-top: 1.5rem;
 }
 
+.home-dashboard-simple {
+  grid-template-columns: 1fr;
+}
+
 .section-heading {
   display: flex;
   align-items: end;
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 0.7rem;
+  min-width: 0;
 }
 
 .section-heading h2 {
@@ -509,6 +576,7 @@ a:hover {
   display: block;
   font-size: 1rem;
   font-weight: 900;
+  overflow-wrap: anywhere;
 }
 
 .action-card span:not(.action-icon):not(.action-link),
@@ -662,7 +730,8 @@ a:hover {
   margin-bottom: 0.75rem;
   font-size: clamp(2rem, 4vw, 3.6rem);
   font-weight: 900;
-  line-height: 1;
+  line-height: 1.04;
+  overflow-wrap: anywhere;
 }
 
 .contact-hero p {
@@ -954,6 +1023,7 @@ dl.row,
   align-items: end;
   margin-top: clamp(1.25rem, 3vw, 2rem);
   margin-bottom: 1.25rem;
+  min-width: 0;
 }
 
 .page-kicker {
@@ -972,6 +1042,7 @@ dl.row,
   color: var(--clinic-ink);
   font-weight: 900;
   letter-spacing: 0;
+  overflow-wrap: anywhere;
 }
 
 .page-subtitle,
@@ -983,15 +1054,20 @@ dl.row,
 }
 
 .table-shell {
+  max-width: 100%;
   overflow: hidden;
 }
 
 .table-responsive {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   margin-bottom: 0;
 }
 
 .table {
   min-width: 760px;
+  width: 100%;
   margin-bottom: 0;
   color: var(--clinic-ink);
 }
@@ -1016,7 +1092,7 @@ dl.row,
 }
 
 .action-cell {
-  min-width: 16rem;
+  min-width: 13rem;
 }
 
 .status-badge {
@@ -1028,6 +1104,27 @@ dl.row,
   background: var(--clinic-primary-soft);
   font-size: 0.78rem;
   font-weight: 850;
+}
+
+.status-pending {
+  color: #775f16;
+  background: #fff4c7;
+}
+
+.status-confirmed {
+  color: var(--clinic-primary-dark);
+  background: var(--clinic-primary-soft);
+}
+
+.status-completed {
+  color: #2d526d;
+  background: #e5f1f8;
+}
+
+.status-cancelled,
+.status-no-show {
+  color: var(--clinic-danger);
+  background: #fff0ee;
 }
 
 .app-content > form,
@@ -1053,6 +1150,8 @@ dl.row,
 
 .form-control,
 .form-select {
+  width: 100%;
+  min-width: 0;
   border-color: var(--clinic-line);
   border-radius: var(--clinic-radius);
   padding: 0.72rem 0.85rem;
@@ -1166,6 +1265,116 @@ textarea.form-control {
   margin: 0.35rem 0 0.85rem;
 }
 
+.locked-context-card {
+  display: grid;
+  gap: 0.2rem;
+  padding: 1rem;
+  border: 1px solid rgba(47, 125, 82, 0.24);
+  border-radius: var(--clinic-radius);
+  color: var(--clinic-ink);
+  background:
+    linear-gradient(135deg, rgba(231, 244, 236, 0.92), rgba(255, 255, 255, 0.86)),
+    #fff;
+}
+
+.locked-context-card span {
+  color: var(--clinic-primary);
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.locked-context-card strong {
+  font-size: 1.08rem;
+  font-weight: 900;
+}
+
+.locked-context-card small {
+  color: var(--clinic-muted);
+  font-weight: 650;
+}
+
+.patient-number-group .btn {
+  min-width: 6.5rem;
+}
+
+.patient-number-disabled {
+  color: var(--clinic-muted);
+  background-color: #f1ece4;
+  cursor: not-allowed;
+}
+
+.verification-message {
+  min-height: 1.4rem;
+  margin-top: 0.45rem;
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.verification-message.is-success {
+  color: var(--clinic-success);
+}
+
+.verification-message.is-warning {
+  color: var(--clinic-danger);
+}
+
+.verification-message.is-muted {
+  color: var(--clinic-muted);
+}
+
+.status-modal {
+  border: 1px solid var(--clinic-line);
+  border-radius: var(--clinic-radius);
+  box-shadow: var(--clinic-shadow);
+}
+
+.status-result {
+  display: grid;
+  gap: 0.15rem;
+  min-height: 2.75rem;
+  margin-top: 0.5rem;
+  padding: 0.9rem;
+  border: 1px solid var(--clinic-line);
+  border-radius: var(--clinic-radius);
+  color: var(--clinic-muted);
+  background: #fbf8f4;
+  font-weight: 750;
+}
+
+.status-result span {
+  color: var(--clinic-muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.status-result strong {
+  color: var(--clinic-ink);
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
+.status-result small {
+  color: var(--clinic-ink);
+}
+
+.status-result.is-success {
+  border-color: rgba(47, 125, 82, 0.28);
+  color: var(--clinic-success);
+  background: var(--clinic-primary-soft);
+}
+
+.status-result.is-warning {
+  border-color: rgba(184, 66, 59, 0.26);
+  color: var(--clinic-danger);
+  background: #fff8f7;
+}
+
+.status-result.is-muted {
+  color: var(--clinic-muted);
+}
+
 dl.row {
   margin-left: 0;
   margin-right: 0;
@@ -1187,6 +1396,17 @@ dl.row dd {
   gap: 1rem;
   align-items: stretch;
   padding-top: clamp(1.25rem, 4vw, 2.5rem);
+}
+
+.row > *,
+.modal-content,
+.content-panel,
+.booking-card,
+.form-section,
+.quick-panel,
+.table-shell,
+dl.row {
+  min-width: 0;
 }
 
 .auth-aside,
@@ -1250,8 +1470,33 @@ dl.row dd {
 }
 
 @media (max-width: 1199.98px) {
+  .app-nav-links {
+    align-items: stretch;
+    margin: 1rem 0 0;
+  }
+
+  .app-user-area {
+    align-items: stretch;
+    flex-direction: column;
+    margin: 1rem 0 0;
+  }
+
+  .signed-in-chip,
+  .btn-ghost {
+    justify-content: center;
+    width: 100%;
+  }
+
   .home-dashboard {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .home-dashboard-simple {
+    grid-template-columns: 1fr;
+  }
+
+  .home-dashboard-simple .quick-actions-column {
+    grid-column: auto;
   }
 
   .quick-actions-column {
@@ -1298,6 +1543,12 @@ dl.row dd {
     min-height: 16rem;
   }
 
+  .home-hero {
+    margin-left: 0;
+    margin-right: 0;
+    border-radius: 0 0 var(--clinic-radius) var(--clinic-radius);
+  }
+
   .module-grid,
   .service-grid,
   .contact-grid {
@@ -1321,6 +1572,33 @@ dl.row dd {
 }
 
 @media (max-width: 767.98px) {
+  html {
+    font-size: 15px;
+  }
+
+  .app-nav-container,
+  .app-content,
+  .app-footer-inner {
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
+  }
+
+  .app-navbar {
+    padding: 0.55rem 0;
+  }
+
+  .app-brand {
+    max-width: calc(100vw - 6rem);
+  }
+
+  .brand-name {
+    font-size: 1rem;
+  }
+
+  .brand-subtitle {
+    font-size: 0.78rem;
+  }
+
   .home-dashboard {
     grid-template-columns: 1fr;
   }
@@ -1352,6 +1630,57 @@ dl.row dd {
 
   .footer-links {
     justify-content: start;
+    gap: 0.7rem;
+  }
+
+  .home-hero-copy {
+    padding: 1.55rem 1rem;
+  }
+
+  .home-hero-copy h1,
+  .contact-hero h1 {
+    font-size: clamp(1.95rem, 10vw, 2.75rem);
+    line-height: 1.04;
+  }
+
+  .home-hero-copy p,
+  .contact-hero p,
+  .page-subtitle,
+  .auth-copy,
+  .result-copy {
+    font-size: 0.96rem;
+  }
+
+  .home-hero-visual {
+    min-height: 12rem;
+  }
+
+  .requirement-strip,
+  .module-grid,
+  .dashboard-metrics,
+  .contact-grid,
+  .profile-summary {
+    gap: 0.75rem;
+  }
+
+  .search-panel,
+  .booking-card,
+  .form-section,
+  .content-panel,
+  dl.row {
+    padding: 0.85rem;
+  }
+
+  .table {
+    min-width: 680px;
+  }
+
+  .table > :not(caption) > * > * {
+    padding: 0.72rem 0.78rem;
+  }
+
+  .action-cell {
+    min-width: 11rem;
   }
 }
 
@@ -1367,18 +1696,113 @@ dl.row dd {
   }
 
   .home-hero-copy {
-    padding: 1.5rem 1rem;
+    padding: 1.35rem 0.9rem;
   }
 
   .home-hero-copy h1 {
-    font-size: 2.25rem;
+    font-size: clamp(1.85rem, 11vw, 2.35rem);
   }
 
   .app-content > form,
   .auth-panel,
   .result-panel,
   .content-panel {
-    padding: 1rem;
+    padding: 0.9rem;
+  }
+
+  .brand-mark {
+    width: 2.15rem;
+    height: 2.15rem;
+    border-width: 2px;
+  }
+
+  .brand-mark .paw-pad {
+    left: 0.64rem;
+    top: 1.02rem;
+    width: 0.78rem;
+    height: 0.52rem;
+  }
+
+  .brand-mark .paw-toe {
+    width: 0.34rem;
+    height: 0.34rem;
+  }
+
+  .brand-mark .toe-one {
+    left: 0.54rem;
+    top: 0.58rem;
+  }
+
+  .brand-mark .toe-two {
+    left: 0.9rem;
+    top: 0.43rem;
+  }
+
+  .brand-mark .toe-three {
+    left: 1.24rem;
+    top: 0.58rem;
+  }
+
+  .hero-actions .btn,
+  .page-actions .btn,
+  .form-actions .btn,
+  .modal-footer .btn {
+    width: 100%;
+  }
+
+  .input-group.patient-number-group {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+
+  .input-group.patient-number-group > .form-control,
+  .input-group.patient-number-group > .btn {
+    width: 100%;
+    border-radius: var(--clinic-radius) !important;
+  }
+
+  .modal-dialog {
+    width: calc(100% - 1rem);
+    max-width: calc(100% - 1rem);
+    margin-left: 0.5rem;
+    margin-right: 0.5rem;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding-left: 0.9rem;
+    padding-right: 0.9rem;
+  }
+
+  .queue-ticket strong,
+  .status-result strong {
+    font-size: clamp(1.35rem, 8vw, 2rem);
+  }
+
+  .table {
+    min-width: 620px;
+    font-size: 0.92rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .app-nav-container,
+  .app-content,
+  .app-footer-inner {
+    padding-left: 0.65rem;
+    padding-right: 0.65rem;
+  }
+
+  .home-hero-copy h1,
+  .contact-hero h1 {
+    font-size: 1.72rem;
+  }
+
+  .btn {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
   }
 }
 

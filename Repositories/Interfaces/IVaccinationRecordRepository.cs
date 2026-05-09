@@ -9,6 +9,7 @@ public interface IVaccinationRecordRepository
     Task<List<VaccinationRecord>> GetByPetIdAsync(int petId);
     Task<List<VaccinationRecord>> GetUpcomingDueAsync();
     Task<List<VaccinationRecord>> GetOverdueAsync();
+    Task<bool> ExistsByAppointmentIdAsync(int appointmentId, int? excludingVaccinationId = null);
     Task AddAsync(VaccinationRecord vaccinationRecord);
     void Update(VaccinationRecord vaccinationRecord);
     void Delete(VaccinationRecord vaccinationRecord);

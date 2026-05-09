@@ -44,5 +44,7 @@ public class ConsultationRecordFormViewModel
 
     public IEnumerable<SelectListItem> PetOptions { get; set; } = [];
 
+    public IEnumerable<SelectListItem> AppointmentOptions { get; set; } = [];
+
     public IEnumerable<SelectListItem> UserOptions { get; set; } = [];
 }

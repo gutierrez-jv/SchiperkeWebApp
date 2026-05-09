@@ -1,15 +1,44 @@
 @model VaccinationRecordFormViewModel
 
+@{
+    var selectedAppointment = Model.AppointmentOptions.FirstOrDefault(option => option.Selected)?.Text;
+    var selectedPatient = Model.PetOptions.FirstOrDefault(option => option.Selected)?.Text;
+    var isLinkedToAppointment = Model.AppointmentId.HasValue;
+}
+
 <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
 <div class="row g-3">
-    <div class="col-md-6">
-        <label asp-for="PetId" class="form-label"></label>
-        <select asp-for="PetId" asp-items="Model.PetOptions" class="form-select">
-            <option value="">Select pet</option>
-        </select>
-        <span asp-validation-for="PetId" class="text-danger"></span>
-    </div>
+    @if (isLinkedToAppointment)
+    {
+        <input asp-for="PetId" type="hidden" />
+        <input asp-for="AppointmentId" type="hidden" />
+        <div class="col-12">
+            <div class="locked-context-card">
+                <span>Completed appointment</span>
+                <strong>@(selectedAppointment ?? $"Appointment #{Model.AppointmentId}")</strong>
+                <small>Patient: @(selectedPatient ?? "Selected patient"). The linked appointment and patient are locked to avoid mismatched records.</small>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="col-md-6">
+            <label asp-for="PetId" class="form-label"></label>
+            <select asp-for="PetId" asp-items="Model.PetOptions" class="form-select">
+                <option value="">Select pet</option>
+            </select>
+            <span asp-validation-for="PetId" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="AppointmentId" class="form-label"></label>
+            <select asp-for="AppointmentId" asp-items="Model.AppointmentOptions" class="form-select">
+                <option value="">No linked appointment</option>
+            </select>
+            <span asp-validation-for="AppointmentId" class="text-danger"></span>
+            <span class="form-hint">Only completed vaccination appointments are shown.</span>
+        </div>
+    }
     <div class="col-md-6">
         <label asp-for="RecordedByUserId" class="form-label"></label>
         <select asp-for="RecordedByUserId" asp-items="Model.UserOptions" class="form-select">

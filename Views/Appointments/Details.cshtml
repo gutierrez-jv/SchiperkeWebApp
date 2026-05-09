@@ -9,6 +9,20 @@
     var breed = Model.Breed ?? Model.Pet?.Breed;
     var sex = Model.Sex ?? Model.Pet?.Sex;
     var color = Model.Color ?? Model.Pet?.Color;
+    var canRegisterPatient = Model.PetId is null
+        && (Model.Status.Equals("Confirmed", StringComparison.OrdinalIgnoreCase)
+            || Model.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+        && !string.IsNullOrWhiteSpace(Model.PetName)
+        && !string.IsNullOrWhiteSpace(Model.Species)
+        && !string.IsNullOrWhiteSpace(Model.Sex);
+    var canCreateMedicalRecord = Model.PetId.HasValue
+        && Model.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase);
+    var isConsultation = Model.ServiceType.Equals("Consultation", StringComparison.OrdinalIgnoreCase);
+    var isVaccination = Model.ServiceType.Equals("Vaccination", StringComparison.OrdinalIgnoreCase);
+    var isWellness = Model.ServiceType.Equals("Deworming", StringComparison.OrdinalIgnoreCase)
+        || Model.ServiceType.Equals("Internal Antiparasitic", StringComparison.OrdinalIgnoreCase)
+        || Model.ServiceType.Equals("External Antiparasitic", StringComparison.OrdinalIgnoreCase)
+        || Model.ServiceType.Equals("General Wellness", StringComparison.OrdinalIgnoreCase);
 }
 
 <div class="page-header">
@@ -18,6 +32,16 @@
         <p class="page-subtitle">Client-facing booking details centered on the pet patient.</p>
     </div>
 </div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert-success" role="alert">@successMessage</div>
+}
+
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger" role="alert">@errorMessage</div>
+}
 
 <dl class="row">
     <dt class="col-sm-3">Appointment Code</dt>
@@ -62,6 +86,21 @@
     <dt class="col-sm-3">Remarks</dt>
     <dd class="col-sm-9">@Model.Remarks</dd>
 
+    @if (Model.Status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase)
+        || !string.IsNullOrWhiteSpace(Model.CancellationReason)
+        || !string.IsNullOrWhiteSpace(Model.CancelledBy)
+        || Model.CancelledAt.HasValue)
+    {
+        <dt class="col-sm-3">Cancellation Reason</dt>
+        <dd class="col-sm-9">@(Model.CancellationReason ?? "No reason provided.")</dd>
+
+        <dt class="col-sm-3">Cancelled By</dt>
+        <dd class="col-sm-9">@(Model.CancelledBy ?? "Not recorded")</dd>
+
+        <dt class="col-sm-3">Cancelled At</dt>
+        <dd class="col-sm-9">@(Model.CancelledAt?.ToString("yyyy-MM-dd HH:mm") ?? "Not recorded")</dd>
+    }
+
     <dt class="col-sm-3">Created By</dt>
     <dd class="col-sm-9">@(Model.CreatedByUser?.FullName ?? "Public booking")</dd>
 
@@ -73,7 +112,25 @@
 </dl>
 
 <div class="d-flex gap-2">
+    @if (canRegisterPatient)
+    {
+        <form asp-action="RegisterPatient" asp-route-id="@Model.AppointmentId" method="post">
+            <button type="submit" class="btn btn-success">Register Patient</button>
+        </form>
+    }
+    @if (canCreateMedicalRecord && isConsultation)
+    {
+        <a asp-controller="ConsultationRecords" asp-action="Create" asp-route-appointmentId="@Model.AppointmentId" class="btn btn-success">Create Consultation Record</a>
+    }
+    @if (canCreateMedicalRecord && isVaccination)
+    {
+        <a asp-controller="VaccinationRecords" asp-action="Create" asp-route-appointmentId="@Model.AppointmentId" class="btn btn-success">Create Vaccination Record</a>
+    }
+    @if (canCreateMedicalRecord && isWellness)
+    {
+        <a asp-controller="WellnessRecords" asp-action="Create" asp-route-appointmentId="@Model.AppointmentId" class="btn btn-success">Create Wellness Record</a>
+    }
     <a asp-action="Edit" asp-route-id="@Model.AppointmentId" class="btn btn-primary">Edit</a>
-    <a asp-action="Delete" asp-route-id="@Model.AppointmentId" class="btn btn-outline-danger">Deactivate</a>
+    <a asp-action="Delete" asp-route-id="@Model.AppointmentId" class="btn btn-outline-danger">Delete</a>
     <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
 </div>

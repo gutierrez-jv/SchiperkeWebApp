@@ -32,6 +32,14 @@ public class AppointmentRepository : IAppointmentRepository
             .FirstOrDefaultAsync(a => a.AppointmentId == id && !a.IsDeleted);
     }
 
+    public async Task<Appointment?> GetByAppointmentCodeAsync(string appointmentCode)
+    {
+        return await _context.Appointments
+            .Include(a => a.Pet)
+            .Include(a => a.CreatedByUser)
+            .FirstOrDefaultAsync(a => a.AppointmentCode == appointmentCode && !a.IsDeleted);
+    }
+
     public async Task<List<Appointment>> GetByPetIdAsync(int petId)
     {
         return await _context.Appointments

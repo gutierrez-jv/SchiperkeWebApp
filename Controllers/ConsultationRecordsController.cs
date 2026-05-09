@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using SchiperkeWebApp.Models.Database;
@@ -9,15 +10,18 @@ namespace SchiperkeWebApp.Controllers;
 public class ConsultationRecordsController : Controller
 {
     private readonly IConsultationRecordService _consultationRecordService;
+    private readonly IAppointmentService _appointmentService;
     private readonly IPetService _petService;
     private readonly IUserService _userService;
 
     public ConsultationRecordsController(
         IConsultationRecordService consultationRecordService,
+        IAppointmentService appointmentService,
         IPetService petService,
         IUserService userService)
     {
         _consultationRecordService = consultationRecordService;
+        _appointmentService = appointmentService;
         _petService = petService;
         _userService = userService;
     }
@@ -53,9 +57,12 @@ public class ConsultationRecordsController : Controller
         return record is null ? NotFound() : View(record);
     }
 
-    public async Task<IActionResult> Create()
+    public async Task<IActionResult> Create(int? appointmentId)
     {
-        return View(await BuildFormAsync(new ConsultationRecordFormViewModel()));
+        return View(await BuildFormAsync(new ConsultationRecordFormViewModel
+        {
+            AppointmentId = appointmentId
+        }));
     }
 
     [HttpPost]
@@ -142,13 +149,81 @@ public class ConsultationRecordsController : Controller
 
     private async Task<ConsultationRecordFormViewModel> BuildFormAsync(ConsultationRecordFormViewModel model)
     {
+        await ApplyAppointmentContextAsync(model);
+
+        var currentUserId = await ResolveCurrentUserIdAsync();
+        if (currentUserId.HasValue && model.RecordedByUserId == 0)
+        {
+            model.RecordedByUserId = currentUserId.Value;
+        }
+
         var pets = await _petService.GetAllAsync();
         var users = await _userService.GetAllAsync();
+        var appointments = await GetCompletedAppointmentOptionsAsync("Consultation", model.AppointmentId);
 
         model.PetOptions = pets.Select(p => new SelectListItem($"{p.PatientNo} - {p.PetName}", p.PetId.ToString(), p.PetId == model.PetId));
+        model.AppointmentOptions = appointments.Select(a => new SelectListItem(BuildAppointmentLabel(a), a.AppointmentId.ToString(), a.AppointmentId == model.AppointmentId));
         model.UserOptions = users.Select(u => new SelectListItem($"{u.FullName} ({u.Role})", u.UserId.ToString(), u.UserId == model.RecordedByUserId));
 
         return model;
+    }
+
+    private async Task ApplyAppointmentContextAsync(ConsultationRecordFormViewModel model)
+    {
+        if (!model.AppointmentId.HasValue)
+        {
+            return;
+        }
+
+        var appointment = await _appointmentService.GetByIdAsync(model.AppointmentId.Value);
+        if (appointment?.PetId is null)
+        {
+            return;
+        }
+
+        if (model.PetId == 0)
+        {
+            model.PetId = appointment.PetId.Value;
+        }
+
+        if (model.ConsultationId == 0)
+        {
+            model.ConsultationDate = appointment.AppointmentDate.ToDateTime(appointment.AppointmentTime);
+        }
+    }
+
+    private async Task<IEnumerable<Appointment>> GetCompletedAppointmentOptionsAsync(string serviceType, int? selectedAppointmentId)
+    {
+        var appointments = await _appointmentService.GetAllAsync();
+        return appointments
+            .Where(a =>
+                a.PetId.HasValue &&
+                a.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase) &&
+                (a.ServiceType.Equals(serviceType, StringComparison.OrdinalIgnoreCase) ||
+                 a.AppointmentId == selectedAppointmentId))
+            .OrderByDescending(a => a.AppointmentDate)
+            .ThenBy(a => a.AppointmentTime)
+            .ToList();
+    }
+
+    private async Task<int?> ResolveCurrentUserIdAsync()
+    {
+        var claimValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(claimValue, out var userId))
+        {
+            return null;
+        }
+
+        var user = await _userService.GetByIdAsync(userId);
+        return user is null ? null : userId;
+    }
+
+    private static string BuildAppointmentLabel(Appointment appointment)
+    {
+        var appointmentCode = appointment.AppointmentCode ?? $"APT-{appointment.AppointmentId:0000}";
+        var patientNo = appointment.PatientNoInput ?? appointment.Pet?.PatientNo ?? "No patient no";
+        var petName = appointment.PetName ?? appointment.Pet?.PetName ?? "Unnamed pet";
+        return $"{appointmentCode} - {patientNo} {petName} - {appointment.AppointmentDate:yyyy-MM-dd} {appointment.AppointmentTime:hh\\:mm tt}";
     }
 
     private static ConsultationRecordFormViewModel MapToFormModel(ConsultationRecord record)

@@ -76,6 +76,14 @@ public class VaccinationRecordRepository : IVaccinationRecordRepository
             .ToListAsync();
     }
 
+    public async Task<bool> ExistsByAppointmentIdAsync(int appointmentId, int? excludingVaccinationId = null)
+    {
+        return await _context.VaccinationRecords
+            .AnyAsync(v => !v.IsDeleted &&
+                           v.AppointmentId == appointmentId &&
+                           (!excludingVaccinationId.HasValue || v.VaccinationId != excludingVaccinationId.Value));
+    }
+
     public async Task AddAsync(VaccinationRecord vaccinationRecord)
     {
         await _context.VaccinationRecords.AddAsync(vaccinationRecord);

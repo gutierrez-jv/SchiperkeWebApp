@@ -10,6 +10,9 @@
         <h1>Book Appointment</h1>
         <p class="page-subtitle">Request a clinic visit using pet details only. No owner or client contact information is stored.</p>
     </div>
+    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#appointmentStatusModal">
+        Check Appointment Status
+    </button>
 </div>
 
 <form asp-action="Book" method="post" class="booking-card">
@@ -25,40 +28,45 @@
         <div class="row g-3">
             <div class="col-md-6">
                 <label asp-for="PatientNoInput" class="form-label"></label>
-                <input asp-for="PatientNoInput" class="form-control" autocomplete="off" placeholder="Example: PET-0001" />
+                <div class="input-group patient-number-group">
+                    <input asp-for="PatientNoInput" class="form-control" autocomplete="off" placeholder="Example: PET-0001" />
+                    <button type="button" class="btn btn-outline-primary" id="verifyPatientNumberButton">Verify</button>
+                </div>
+                <div id="patientNumberVerificationMessage" class="verification-message" role="status" aria-live="polite"></div>
                 <span asp-validation-for="PatientNoInput" class="text-danger"></span>
             </div>
         </div>
     </section>
 
-    <section class="form-section">
+    <section class="form-section" id="petDetailsSection">
         <h2 class="h5">Pet Details</h2>
+        <p class="form-hint" id="petDetailsHint">For new patients, enter the basic pet details needed for the appointment request.</p>
         <div class="row g-3">
             <div class="col-md-6">
                 <label asp-for="PetName" class="form-label"></label>
-                <input asp-for="PetName" class="form-control" autocomplete="off" />
+                <input asp-for="PetName" class="form-control" autocomplete="off" data-pet-detail-field="true" data-required-for-new-patient="true" />
                 <span asp-validation-for="PetName" class="text-danger"></span>
             </div>
             <div class="col-md-3">
                 <label asp-for="Species" class="form-label"></label>
-                <input asp-for="Species" class="form-control" placeholder="Dog, Cat, etc." />
+                <input asp-for="Species" class="form-control" placeholder="Dog, Cat, etc." data-pet-detail-field="true" data-required-for-new-patient="true" />
                 <span asp-validation-for="Species" class="text-danger"></span>
             </div>
             <div class="col-md-3">
                 <label asp-for="Sex" class="form-label"></label>
-                <select asp-for="Sex" asp-items="@(ViewData["SexOptions"] as IEnumerable<SelectListItem>)" class="form-select">
+                <select asp-for="Sex" asp-items="@(ViewData["SexOptions"] as IEnumerable<SelectListItem>)" class="form-select" data-pet-detail-field="true" data-required-for-new-patient="true">
                     <option value="">Select sex</option>
                 </select>
                 <span asp-validation-for="Sex" class="text-danger"></span>
             </div>
             <div class="col-md-6">
                 <label asp-for="Breed" class="form-label"></label>
-                <input asp-for="Breed" class="form-control" autocomplete="off" />
+                <input asp-for="Breed" class="form-control" autocomplete="off" data-pet-detail-field="true" />
                 <span asp-validation-for="Breed" class="text-danger"></span>
             </div>
             <div class="col-md-6">
                 <label asp-for="Color" class="form-label"></label>
-                <input asp-for="Color" class="form-control" autocomplete="off" />
+                <input asp-for="Color" class="form-control" autocomplete="off" data-pet-detail-field="true" />
                 <span asp-validation-for="Color" class="text-danger"></span>
             </div>
         </div>
@@ -105,6 +113,229 @@
     </div>
 </form>
 
+<div class="modal fade" id="appointmentStatusModal" tabindex="-1" aria-labelledby="appointmentStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content status-modal">
+            <div class="modal-header">
+                <div>
+                    <div class="page-kicker">Appointment Tracking</div>
+                    <h2 class="modal-title h5" id="appointmentStatusModalLabel">Check Appointment Status</h2>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="form-hint">Enter the appointment code and the patient number for existing patients, or pet name for new patients.</p>
+                <div class="mb-3">
+                    <label for="statusAppointmentCode" class="form-label">Appointment Code</label>
+                    <input id="statusAppointmentCode" class="form-control" autocomplete="off" placeholder="Example: APT-2026-0001" />
+                </div>
+                <div class="mb-3">
+                    <label for="statusPatientIdentifier" class="form-label">Patient Number or Pet Name</label>
+                    <input id="statusPatientIdentifier" class="form-control" autocomplete="off" placeholder="Example: PET-0001 or Buddy" />
+                </div>
+                <div id="appointmentStatusResult" class="status-result" role="status" aria-live="polite"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="checkAppointmentStatusButton">Check Status</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const existingPatientToggle = document.getElementById('IsExistingPatient');
+            const patientNumberInput = document.getElementById('PatientNoInput');
+            const verifyButton = document.getElementById('verifyPatientNumberButton');
+            const verificationMessage = document.getElementById('patientNumberVerificationMessage');
+            const petDetailsSection = document.getElementById('petDetailsSection');
+            const petDetailFields = document.querySelectorAll('[data-pet-detail-field="true"]');
+            const statusAppointmentCode = document.getElementById('statusAppointmentCode');
+            const statusPatientIdentifier = document.getElementById('statusPatientIdentifier');
+            const checkAppointmentStatusButton = document.getElementById('checkAppointmentStatusButton');
+            const appointmentStatusResult = document.getElementById('appointmentStatusResult');
+            const verifyUrl = '@Url.Action("VerifyPatientNumber", "Appointments")';
+            const statusUrl = '@Url.Action("CheckAppointmentStatus", "Appointments")';
+
+            if (!existingPatientToggle || !patientNumberInput || !verifyButton || !verificationMessage || !petDetailsSection) {
+                return;
+            }
+
+            const setVerificationMessage = (message, state) => {
+                verificationMessage.textContent = message;
+                verificationMessage.classList.remove('is-success', 'is-warning', 'is-muted');
+
+                if (state) {
+                    verificationMessage.classList.add(state);
+                }
+            };
+
+            const syncPatientNumberState = () => {
+                const isExistingPatient = existingPatientToggle.checked;
+
+                patientNumberInput.disabled = !isExistingPatient;
+                verifyButton.disabled = !isExistingPatient;
+                patientNumberInput.classList.toggle('patient-number-disabled', !isExistingPatient);
+                patientNumberInput.placeholder = isExistingPatient ? 'Example: PET-0001' : 'Not needed for new patients';
+                petDetailsSection.hidden = isExistingPatient;
+
+                petDetailFields.forEach((field) => {
+                    field.disabled = isExistingPatient;
+
+                    if (!isExistingPatient && field.dataset.requiredForNewPatient === 'true') {
+                        field.required = true;
+                    } else {
+                        field.required = false;
+                    }
+
+                    if (isExistingPatient) {
+                        field.value = '';
+                    }
+                });
+
+                if (!isExistingPatient) {
+                    patientNumberInput.value = '';
+                    setVerificationMessage('New patient selected. Patient number is not required.', 'is-muted');
+                } else {
+                    setVerificationMessage('Enter and verify the patient number. Pet details will be taken from the clinic record.', 'is-muted');
+                }
+            };
+
+            existingPatientToggle.addEventListener('change', syncPatientNumberState);
+            patientNumberInput.addEventListener('input', () => {
+                if (existingPatientToggle.checked) {
+                    setVerificationMessage('Patient number changed. Verify again before submitting.', 'is-muted');
+                }
+            });
+
+            verifyButton.addEventListener('click', async () => {
+                const patientNo = patientNumberInput.value.trim();
+
+                if (!patientNo) {
+                    setVerificationMessage('Enter a patient number first.', 'is-warning');
+                    patientNumberInput.focus();
+                    return;
+                }
+
+                verifyButton.disabled = true;
+                setVerificationMessage('Checking patient number...', 'is-muted');
+
+                try {
+                    const response = await fetch(`${verifyUrl}?patientNo=${encodeURIComponent(patientNo)}`, {
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+                    const result = await response.json();
+
+                    setVerificationMessage(
+                        result.message || 'Patient number check completed.',
+                        result.found ? 'is-success' : 'is-warning');
+
+                    if (result.found) {
+                        window.alert('Patient record verified. Pet details will be taken from the clinic record for this appointment.');
+                    }
+                } catch {
+                    setVerificationMessage('Patient number could not be verified right now. You can still submit the request.', 'is-warning');
+                } finally {
+                    verifyButton.disabled = !existingPatientToggle.checked;
+                }
+            });
+
+            const setStatusResult = (html, state) => {
+                if (!appointmentStatusResult) {
+                    return;
+                }
+
+                appointmentStatusResult.innerHTML = html;
+                appointmentStatusResult.classList.remove('is-success', 'is-warning', 'is-muted');
+
+                if (state) {
+                    appointmentStatusResult.classList.add(state);
+                }
+            };
+
+            const escapeHtml = (value) => {
+                const element = document.createElement('div');
+                element.textContent = value ?? '';
+                return element.innerHTML;
+            };
+
+            const getStatusState = (result) => {
+                const status = (result.status || '').toLowerCase();
+
+                if (status === 'cancelled' || status === 'no-show' || result.isPast) {
+                    return 'is-warning';
+                }
+
+                if (status === 'completed') {
+                    return 'is-muted';
+                }
+
+                return 'is-success';
+            };
+
+            const renderStatusResult = (result) => {
+                const cancellationDetails = result.cancellationReason
+                    ? `<small>Cancellation Reason: ${escapeHtml(result.cancellationReason)}</small>`
+                    : '';
+                const cancelledBy = result.cancelledBy
+                    ? `<small>Cancelled By: ${escapeHtml(result.cancelledBy)}</small>`
+                    : '';
+                const cancelledAt = result.cancelledAt
+                    ? `<small>Cancelled At: ${escapeHtml(result.cancelledAt)}</small>`
+                    : '';
+
+                setStatusResult(`
+                    <span>Appointment Code</span>
+                    <strong>${escapeHtml(result.appointmentCode)}</strong>
+                    <small>Status: ${escapeHtml(result.status)}</small>
+                    <small>Schedule: ${escapeHtml(result.schedule)}</small>
+                    <small>Service: ${escapeHtml(result.serviceType)}</small>
+                    <small>${escapeHtml(result.message)}</small>
+                    ${cancellationDetails}
+                    ${cancelledBy}
+                    ${cancelledAt}
+                `, getStatusState(result));
+            };
+
+            checkAppointmentStatusButton?.addEventListener('click', async () => {
+                const appointmentCode = statusAppointmentCode?.value.trim() || '';
+                const patientIdentifier = statusPatientIdentifier?.value.trim() || '';
+
+                if (!appointmentCode || !patientIdentifier) {
+                    setStatusResult('Enter both the appointment code and patient number or pet name.', 'is-warning');
+                    return;
+                }
+
+                checkAppointmentStatusButton.disabled = true;
+                setStatusResult('Checking appointment status...', 'is-muted');
+
+                try {
+                    const response = await fetch(`${statusUrl}?appointmentCode=${encodeURIComponent(appointmentCode)}&patientIdentifier=${encodeURIComponent(patientIdentifier)}`, {
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+                    const result = await response.json();
+
+                    if (!result.found) {
+                        setStatusResult(result.message || 'No matching appointment was found.', 'is-warning');
+                        return;
+                    }
+
+                    renderStatusResult(result);
+                } catch {
+                    setStatusResult('Appointment status could not be checked right now. Please try again later.', 'is-warning');
+                } finally {
+                    checkAppointmentStatusButton.disabled = false;
+                }
+            });
+
+            syncPatientNumberState();
+        })();
+    </script>
 }

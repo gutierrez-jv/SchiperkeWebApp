@@ -87,6 +87,14 @@ public class WellnessRecordRepository : IWellnessRecordRepository
             .ToListAsync();
     }
 
+    public async Task<bool> ExistsByAppointmentIdAsync(int appointmentId, int? excludingWellnessId = null)
+    {
+        return await _context.WellnessRecords
+            .AnyAsync(w => !w.IsDeleted &&
+                           w.AppointmentId == appointmentId &&
+                           (!excludingWellnessId.HasValue || w.WellnessId != excludingWellnessId.Value));
+    }
+
     public async Task AddAsync(WellnessRecord wellnessRecord)
     {
         await _context.WellnessRecords.AddAsync(wellnessRecord);

@@ -68,7 +68,7 @@
                 <a asp-controller="Appointments" asp-action="Details" asp-route-id="@item.AppointmentId" class="timeline-item">
                     <span>@item.AppointmentTime.ToString("hh:mm tt")</span>
                     <strong>@appointmentCode - @petName</strong>
-                    <em>@patientNo · @item.ServiceType · @item.Status</em>
+                    <em>@patientNo | @item.ServiceType | @item.Status</em>
                 </a>
             }
         }

@@ -72,22 +72,26 @@ public class UserService : IUserService
             throw new InvalidOperationException("Active user record was not found.");
         }
 
-        user.Username = user.Username.Trim();
-        user.FullName = user.FullName.Trim();
-        user.Role = NormalizeRole(user.Role);
-        user.PasswordHash = string.IsNullOrWhiteSpace(user.PasswordHash)
-            ? existingUser.PasswordHash
-            : _passwordHasher.HashPassword(user, user.PasswordHash.Trim());
-        user.IsActive = existingUser.IsActive;
-        user.CreatedAt = existingUser.CreatedAt;
+        var normalizedUsername = user.Username.Trim();
+        var normalizedFullName = user.FullName.Trim();
+        var normalizedRole = NormalizeRole(user.Role);
 
-        var duplicateUser = await _userRepository.GetByUsernameAsync(user.Username);
+        var duplicateUser = await _userRepository.GetByUsernameAsync(normalizedUsername);
         if (duplicateUser is not null && duplicateUser.UserId != user.UserId)
         {
             throw new InvalidOperationException("Username already exists.");
         }
 
-        _userRepository.Update(user);
+        existingUser.Username = normalizedUsername;
+        existingUser.FullName = normalizedFullName;
+        existingUser.Role = normalizedRole;
+
+        if (!string.IsNullOrWhiteSpace(user.PasswordHash))
+        {
+            existingUser.PasswordHash = _passwordHasher.HashPassword(existingUser, user.PasswordHash.Trim());
+        }
+
+        _userRepository.Update(existingUser);
         await _userRepository.SaveAsync();
     }
 

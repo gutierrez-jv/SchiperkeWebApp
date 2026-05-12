@@ -18,7 +18,7 @@
     <dd class="col-sm-9">@Model.ProductOrMedication</dd>
 </dl>
 
-<form asp-action="Delete" method="post">
+<form asp-action="Delete" method="post" data-paws-confirm="Delete this wellness record? It will be hidden from normal lists but kept in the database.">
     <input type="hidden" asp-for="WellnessId" />
     <button type="submit" class="btn btn-danger">Delete</button>
     <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>

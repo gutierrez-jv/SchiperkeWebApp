@@ -1,3 +1,5 @@
+@inject SchiperkeWebApp.Services.Interfaces.IAppointmentService AppointmentService
+
 @{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
@@ -13,6 +15,12 @@
         || currentController == "VaccinationRecords"
         || currentController == "WellnessRecords"
         || currentController == "Users";
+    var pendingAppointmentCount = 0;
+
+    if (User.Identity?.IsAuthenticated == true)
+    {
+        pendingAppointmentCount = (await AppointmentService.GetByStatusAsync("Pending")).Count;
+    }
 }
 
 <!DOCTYPE html>
@@ -39,7 +47,7 @@
                     </span>
                     <span>
                         <span class="brand-name">PAWS</span>
-                        <span class="brand-subtitle">Schiperke Web App</span>
+                        <span class="brand-subtitle">Schipperke Web App</span>
                     </span>
                 </a>
                 <button class="navbar-toggler app-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavigation" aria-controls="mainNavigation"
@@ -63,7 +71,13 @@
                                 <a class="nav-link @(currentController == "Dashboard" ? "active" : "")" asp-area="" asp-controller="Dashboard" asp-action="Index">Dashboard</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link @(isStaffAppointments ? "active" : "")" asp-area="" asp-controller="Appointments" asp-action="Index">Appointments</a>
+                                <a class="nav-link nav-link-with-badge @(isStaffAppointments ? "active" : "")" asp-area="" asp-controller="Appointments" asp-action="Index" asp-route-status="@(pendingAppointmentCount > 0 ? "Pending" : null)">
+                                    Appointments
+                                    @if (pendingAppointmentCount > 0)
+                                    {
+                                        <span class="nav-badge" aria-label="@pendingAppointmentCount pending appointments">@pendingAppointmentCount</span>
+                                    }
+                                </a>
                             </li>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle @(isRecords ? "active" : "")" href="#" id="recordsMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -96,7 +110,7 @@
                         }
                         else
                         {
-                            <a class="btn btn-ghost" asp-area="" asp-controller="Account" asp-action="Login">Staff Login</a>
+                            <a class="btn btn-ghost" asp-area="" asp-controller="Account" asp-action="Login">Login</a>
                         }
                     </div>
                 </div>
@@ -104,8 +118,8 @@
         </nav>
     </header>
 
-    <main class="app-main" role="main">
-        <div class="container-fluid app-content">
+    <main class="app-main @(isHome ? "app-main-home" : "")" role="main">
+        <div class="container-fluid app-content @(isHome ? "app-content-home" : "")">
             @RenderBody()
         </div>
     </main>
@@ -132,9 +146,9 @@
                 }
                 else
                 {
-                    <a asp-controller="Account" asp-action="Login">Staff Login</a>
+                    <a asp-controller="Account" asp-action="Login">Login</a>
                 }
-                <span>Schiperke Web App</span>
+                <span>Schipperke Web App</span>
             </div>
         </div>
     </footer>

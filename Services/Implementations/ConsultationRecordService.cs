@@ -126,7 +126,7 @@ public class ConsultationRecordService : IConsultationRecordService
 
         if (consultationRecord.AppointmentId.HasValue)
         {
-            var appointment = await _appointmentRepository.GetByIdAsync(consultationRecord.AppointmentId.Value);
+            var appointment = await _appointmentRepository.GetByIdIncludingDeletedAsync(consultationRecord.AppointmentId.Value);
             if (appointment is null)
             {
                 throw new InvalidOperationException("Consultation record appointment was not found.");

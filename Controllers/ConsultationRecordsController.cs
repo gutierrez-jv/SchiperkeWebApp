@@ -28,9 +28,19 @@ public class ConsultationRecordsController : Controller
 
     public async Task<IActionResult> Index(int? petId, DateTime? startDate, DateTime? endDate)
     {
-        var records = startDate.HasValue && endDate.HasValue
-            ? await _consultationRecordService.GetByDateRangeAsync(startDate.Value, endDate.Value)
-            : await _consultationRecordService.GetAllAsync();
+        var records = await _consultationRecordService.GetAllAsync();
+
+        if (startDate.HasValue && endDate.HasValue)
+        {
+            if (startDate.Value > endDate.Value)
+            {
+                ModelState.AddModelError(string.Empty, "Start date cannot be later than end date.");
+            }
+            else
+            {
+                records = await _consultationRecordService.GetByDateRangeAsync(startDate.Value, endDate.Value);
+            }
+        }
 
         if (petId.HasValue)
         {
@@ -50,11 +60,13 @@ public class ConsultationRecordsController : Controller
     {
         if (id is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         var record = await _consultationRecordService.GetByIdAsync(id.Value);
-        return record is null ? NotFound() : View(record);
+        return record is null
+            ? RedirectToAction(nameof(Index))
+            : View(record);
     }
 
     public async Task<IActionResult> Create(int? appointmentId)
@@ -90,13 +102,13 @@ public class ConsultationRecordsController : Controller
     {
         if (id is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         var record = await _consultationRecordService.GetByIdAsync(id.Value);
         if (record is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         return View(await BuildFormAsync(MapToFormModel(record)));
@@ -132,11 +144,13 @@ public class ConsultationRecordsController : Controller
     {
         if (id is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         var record = await _consultationRecordService.GetByIdAsync(id.Value);
-        return record is null ? NotFound() : View(record);
+        return record is null
+            ? RedirectToAction(nameof(Index))
+            : View(record);
     }
 
     [HttpPost, ActionName("Delete")]

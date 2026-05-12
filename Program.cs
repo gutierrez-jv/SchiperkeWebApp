@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using System.Security.Claims;
+using System.Threading.RateLimiting;
 using SchiperkeWebApp.Models.Database;
 using SchiperkeWebApp.Repositories.Implementations;
 using SchiperkeWebApp.Repositories.Interfaces;
@@ -65,6 +67,44 @@ namespace SchiperkeWebApp
 
             builder.Services.AddAuthorization();
 
+            builder.Services.AddRateLimiter(options =>
+            {
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+                options.AddPolicy("LoginLimiter", httpContext =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        GetRateLimitPartitionKey(httpContext),
+                        _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = 5,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueLimit = 0,
+                            AutoReplenishment = true
+                        }));
+
+                options.AddPolicy("PublicBookingLimiter", httpContext =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        GetRateLimitPartitionKey(httpContext),
+                        _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = 6,
+                            Window = TimeSpan.FromMinutes(5),
+                            QueueLimit = 0,
+                            AutoReplenishment = true
+                        }));
+
+                options.AddPolicy("PublicLookupLimiter", httpContext =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        GetRateLimitPartitionKey(httpContext),
+                        _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = 30,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueLimit = 0,
+                            AutoReplenishment = true
+                        }));
+            });
+
 
             builder.Services.AddDbContext<SchiperkeDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("SchiperkeConnection")));
@@ -98,6 +138,8 @@ namespace SchiperkeWebApp
 
             app.UseAuthentication();
             app.UseAuthorization();
+            app.UseRateLimiter();
+            app.UseStatusCodePagesWithReExecute("/Home/Status/{0}");
 
             app.MapStaticAssets();
             app.MapControllerRoute(
@@ -106,6 +148,13 @@ namespace SchiperkeWebApp
                 .WithStaticAssets();
 
             app.Run();
+        }
+
+        private static string GetRateLimitPartitionKey(HttpContext httpContext)
+        {
+            return httpContext.Connection.RemoteIpAddress?.ToString()
+                ?? httpContext.User.Identity?.Name
+                ?? "anonymous";
         }
     }
 }

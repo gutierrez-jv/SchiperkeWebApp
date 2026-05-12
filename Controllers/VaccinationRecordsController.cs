@@ -52,11 +52,13 @@ public class VaccinationRecordsController : Controller
     {
         if (id is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         var record = await _vaccinationRecordService.GetByIdAsync(id.Value);
-        return record is null ? NotFound() : View(record);
+        return record is null
+            ? RedirectToAction(nameof(Index))
+            : View(record);
     }
 
     public async Task<IActionResult> Create(int? appointmentId)
@@ -92,13 +94,13 @@ public class VaccinationRecordsController : Controller
     {
         if (id is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         var record = await _vaccinationRecordService.GetByIdAsync(id.Value);
         if (record is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         return View(await BuildFormAsync(MapToFormModel(record)));
@@ -134,11 +136,13 @@ public class VaccinationRecordsController : Controller
     {
         if (id is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         var record = await _vaccinationRecordService.GetByIdAsync(id.Value);
-        return record is null ? NotFound() : View(record);
+        return record is null
+            ? RedirectToAction(nameof(Index))
+            : View(record);
     }
 
     [HttpPost, ActionName("Delete")]

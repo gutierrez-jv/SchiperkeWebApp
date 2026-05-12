@@ -48,7 +48,11 @@
     </div>
     <div class="col-md-6">
         <label asp-for="ConsultationDate" class="form-label"></label>
-        <input asp-for="ConsultationDate" type="datetime-local" class="form-control" />
+        <input asp-for="ConsultationDate" type="datetime-local" class="form-control" readonly="@isLinkedToAppointment" />
+        @if (isLinkedToAppointment)
+        {
+            <span class="form-hint">Locked to the completed appointment schedule.</span>
+        }
         <span asp-validation-for="ConsultationDate" class="text-danger"></span>
     </div>
     <div class="col-md-6">

@@ -6,6 +6,7 @@ public interface IAppointmentRepository
 {
     Task<List<Appointment>> GetAllAsync();
     Task<Appointment?> GetByIdAsync(int id);
+    Task<Appointment?> GetByIdIncludingDeletedAsync(int id);
     Task<Appointment?> GetByAppointmentCodeAsync(string appointmentCode);
     Task<List<Appointment>> GetByPetIdAsync(int petId);
     Task<List<Appointment>> GetByDateAsync(DateOnly appointmentDate);

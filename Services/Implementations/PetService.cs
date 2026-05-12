@@ -1,5 +1,6 @@
 using SchiperkeWebApp.Models.Database;
 using SchiperkeWebApp.Repositories.Interfaces;
+using SchiperkeWebApp.Services;
 using SchiperkeWebApp.Services.Interfaces;
 
 namespace SchiperkeWebApp.Services.Implementations;
@@ -45,8 +46,8 @@ public class PetService : IPetService
 
     public async Task<string> GeneratePatientNoAsync()
     {
-        var activePets = await _petRepository.GetAllAsync();
-        var nextNumber = activePets
+        var pets = await _petRepository.GetAllIncludingInactiveAsync();
+        var nextNumber = pets
             .Select(p => TryParsePatientNumber(p.PatientNo))
             .DefaultIfEmpty(0)
             .Max() + 1;
@@ -57,46 +58,57 @@ public class PetService : IPetService
             patientNo = $"PET-{nextNumber:0000}";
             nextNumber++;
         }
-        while (await _petRepository.GetByPatientNoAsync(patientNo) is not null);
+        while (await _petRepository.PatientNoExistsAsync(patientNo));
 
         return patientNo;
     }
 
     public async Task CreateAsync(Pet pet)
     {
-        PreparePetForSave(pet);
-
-        var existingPet = await _petRepository.GetByPatientNoAsync(pet.PatientNo);
-        if (existingPet is not null)
+        await PatientNumberCoordinator.Lock.WaitAsync();
+        try
         {
-            throw new InvalidOperationException("Patient number already exists.");
-        }
+            pet.PatientNo = await GeneratePatientNoAsync();
+            PreparePetForSave(pet, requirePatientNumber: true);
 
-        pet.IsActive = true;
-        await _petRepository.AddAsync(pet);
-        await _petRepository.SaveAsync();
+            if (await _petRepository.PatientNoExistsAsync(pet.PatientNo))
+            {
+                throw new InvalidOperationException("Patient number already exists. Please try saving again.");
+            }
+
+            pet.IsActive = true;
+            pet.CreatedAt = pet.CreatedAt == default ? DateTime.Now : pet.CreatedAt;
+            await _petRepository.AddAsync(pet);
+            await _petRepository.SaveAsync();
+        }
+        finally
+        {
+            PatientNumberCoordinator.Lock.Release();
+        }
     }
 
     public async Task UpdateAsync(Pet pet)
     {
-        PreparePetForSave(pet);
-
         var existingPet = await _petRepository.GetByIdAsync(pet.PetId);
         if (existingPet is null)
         {
             throw new InvalidOperationException("Active pet record was not found.");
         }
 
-        var duplicatePet = await _petRepository.GetByPatientNoAsync(pet.PatientNo);
-        if (duplicatePet is not null && duplicatePet.PetId != pet.PetId)
-        {
-            throw new InvalidOperationException("Patient number already exists.");
-        }
+        pet.PatientNo = existingPet.PatientNo;
+        PreparePetForSave(pet, requirePatientNumber: true);
 
-        pet.IsActive = existingPet.IsActive;
-        pet.CreatedAt = existingPet.CreatedAt;
+        existingPet.PetName = pet.PetName;
+        existingPet.Species = pet.Species;
+        existingPet.Breed = pet.Breed;
+        existingPet.Sex = pet.Sex;
+        existingPet.BirthDate = pet.BirthDate;
+        existingPet.AgeYears = pet.AgeYears;
+        existingPet.Color = pet.Color;
+        existingPet.Weight = pet.Weight;
+        existingPet.Notes = pet.Notes;
 
-        _petRepository.Update(pet);
+        _petRepository.Update(existingPet);
         await _petRepository.SaveAsync();
     }
 
@@ -113,9 +125,9 @@ public class PetService : IPetService
         await _petRepository.SaveAsync();
     }
 
-    private static void PreparePetForSave(Pet pet)
+    private static void PreparePetForSave(Pet pet, bool requirePatientNumber)
     {
-        if (string.IsNullOrWhiteSpace(pet.PatientNo))
+        if (requirePatientNumber && string.IsNullOrWhiteSpace(pet.PatientNo))
         {
             throw new ArgumentException("Patient number is required.");
         }

@@ -63,11 +63,13 @@ public class WellnessRecordsController : Controller
     {
         if (id is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         var record = await _wellnessRecordService.GetByIdAsync(id.Value);
-        return record is null ? NotFound() : View(record);
+        return record is null
+            ? RedirectToAction(nameof(Index))
+            : View(record);
     }
 
     public async Task<IActionResult> Create(int? appointmentId)
@@ -103,13 +105,13 @@ public class WellnessRecordsController : Controller
     {
         if (id is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         var record = await _wellnessRecordService.GetByIdAsync(id.Value);
         if (record is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         return View(await BuildFormAsync(MapToFormModel(record)));
@@ -145,11 +147,13 @@ public class WellnessRecordsController : Controller
     {
         if (id is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         var record = await _wellnessRecordService.GetByIdAsync(id.Value);
-        return record is null ? NotFound() : View(record);
+        return record is null
+            ? RedirectToAction(nameof(Index))
+            : View(record);
     }
 
     [HttpPost, ActionName("Delete")]
@@ -205,7 +209,7 @@ public class WellnessRecordsController : Controller
             model.DateGiven = appointment.AppointmentDate;
             if (string.IsNullOrWhiteSpace(model.WellnessType) && IsWellnessServiceType(appointment.ServiceType))
             {
-                model.WellnessType = appointment.ServiceType;
+                model.WellnessType = MapAppointmentServiceToWellnessType(appointment.ServiceType);
             }
         }
     }
@@ -241,7 +245,15 @@ public class WellnessRecordsController : Controller
         return serviceType.Equals("Deworming", StringComparison.OrdinalIgnoreCase)
             || serviceType.Equals("Internal Antiparasitic", StringComparison.OrdinalIgnoreCase)
             || serviceType.Equals("External Antiparasitic", StringComparison.OrdinalIgnoreCase)
+            || serviceType.Equals("Wellness", StringComparison.OrdinalIgnoreCase)
             || serviceType.Equals("General Wellness", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string MapAppointmentServiceToWellnessType(string serviceType)
+    {
+        return serviceType.Equals("General Wellness", StringComparison.OrdinalIgnoreCase)
+            ? "Wellness"
+            : serviceType;
     }
 
     private static string BuildAppointmentLabel(Appointment appointment)

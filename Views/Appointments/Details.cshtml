@@ -17,11 +17,17 @@
         && !string.IsNullOrWhiteSpace(Model.Sex);
     var canCreateMedicalRecord = Model.PetId.HasValue
         && Model.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase);
+    var isPending = Model.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase);
+    var isConfirmed = Model.Status.Equals("Confirmed", StringComparison.OrdinalIgnoreCase);
+    var hasConsultationRecord = Model.ConsultationRecords.Any(record => !record.IsDeleted);
+    var hasVaccinationRecord = Model.VaccinationRecords.Any(record => !record.IsDeleted);
+    var hasWellnessRecord = Model.WellnessRecords.Any(record => !record.IsDeleted);
     var isConsultation = Model.ServiceType.Equals("Consultation", StringComparison.OrdinalIgnoreCase);
     var isVaccination = Model.ServiceType.Equals("Vaccination", StringComparison.OrdinalIgnoreCase);
     var isWellness = Model.ServiceType.Equals("Deworming", StringComparison.OrdinalIgnoreCase)
         || Model.ServiceType.Equals("Internal Antiparasitic", StringComparison.OrdinalIgnoreCase)
         || Model.ServiceType.Equals("External Antiparasitic", StringComparison.OrdinalIgnoreCase)
+        || Model.ServiceType.Equals("Wellness", StringComparison.OrdinalIgnoreCase)
         || Model.ServiceType.Equals("General Wellness", StringComparison.OrdinalIgnoreCase);
 }
 
@@ -29,7 +35,7 @@
     <div>
         <div class="page-kicker">Schedule</div>
         <h1>Appointment Details</h1>
-        <p class="page-subtitle">Client-facing booking details centered on the pet patient.</p>
+        <p class="page-subtitle">Booking details centered on the pet patient.</p>
     </div>
 </div>
 
@@ -101,9 +107,6 @@
         <dd class="col-sm-9">@(Model.CancelledAt?.ToString("yyyy-MM-dd HH:mm") ?? "Not recorded")</dd>
     }
 
-    <dt class="col-sm-3">Created By</dt>
-    <dd class="col-sm-9">@(Model.CreatedByUser?.FullName ?? "Public booking")</dd>
-
     <dt class="col-sm-3">Created At</dt>
     <dd class="col-sm-9">@Model.CreatedAt.ToString("yyyy-MM-dd HH:mm")</dd>
 
@@ -111,22 +114,40 @@
     <dd class="col-sm-9">@Model.UpdatedAt?.ToString("yyyy-MM-dd HH:mm")</dd>
 </dl>
 
-<div class="d-flex gap-2">
+<div class="action-group justify-content-start">
+    @if (isPending)
+    {
+        <form asp-action="UpdateStatus" asp-route-id="@Model.AppointmentId" method="post">
+            <input type="hidden" name="status" value="Confirmed" />
+            <button type="submit" class="btn btn-success">Confirm</button>
+        </form>
+    }
+    @if (isConfirmed)
+    {
+        <form asp-action="UpdateStatus" asp-route-id="@Model.AppointmentId" method="post">
+            <input type="hidden" name="status" value="Completed" />
+            <button type="submit" class="btn btn-success">Complete</button>
+        </form>
+        <form asp-action="UpdateStatus" asp-route-id="@Model.AppointmentId" method="post">
+            <input type="hidden" name="status" value="No-Show" />
+            <button type="submit" class="btn btn-outline-danger">No-Show</button>
+        </form>
+    }
     @if (canRegisterPatient)
     {
         <form asp-action="RegisterPatient" asp-route-id="@Model.AppointmentId" method="post">
             <button type="submit" class="btn btn-success">Register Patient</button>
         </form>
     }
-    @if (canCreateMedicalRecord && isConsultation)
+    @if (canCreateMedicalRecord && isConsultation && !hasConsultationRecord)
     {
         <a asp-controller="ConsultationRecords" asp-action="Create" asp-route-appointmentId="@Model.AppointmentId" class="btn btn-success">Create Consultation Record</a>
     }
-    @if (canCreateMedicalRecord && isVaccination)
+    @if (canCreateMedicalRecord && isVaccination && !hasVaccinationRecord)
     {
         <a asp-controller="VaccinationRecords" asp-action="Create" asp-route-appointmentId="@Model.AppointmentId" class="btn btn-success">Create Vaccination Record</a>
     }
-    @if (canCreateMedicalRecord && isWellness)
+    @if (canCreateMedicalRecord && isWellness && !hasWellnessRecord)
     {
         <a asp-controller="WellnessRecords" asp-action="Create" asp-route-appointmentId="@Model.AppointmentId" class="btn btn-success">Create Wellness Record</a>
     }

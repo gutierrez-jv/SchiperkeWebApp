@@ -51,6 +51,15 @@ public class PublicAppointmentRequestViewModel : IValidatableObject
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        if (AppointmentDate < today ||
+            (AppointmentDate == today && AppointmentTime < TimeOnly.FromDateTime(DateTime.Now)))
+        {
+            yield return new ValidationResult(
+                "Appointment schedule cannot be in the past.",
+                new[] { nameof(AppointmentDate), nameof(AppointmentTime) });
+        }
+
         if (IsExistingPatient)
         {
             if (string.IsNullOrWhiteSpace(PatientNoInput))

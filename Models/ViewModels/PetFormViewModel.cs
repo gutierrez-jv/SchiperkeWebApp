@@ -6,9 +6,8 @@ public class PetFormViewModel
 {
     public int PetId { get; set; }
 
-    [Required]
     [Display(Name = "Patient No.")]
-    public string PatientNo { get; set; } = string.Empty;
+    public string? PatientNo { get; set; }
 
     [Required]
     [Display(Name = "Pet Name")]

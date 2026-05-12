@@ -130,7 +130,7 @@ public class VaccinationRecordService : IVaccinationRecordService
 
         if (vaccinationRecord.AppointmentId.HasValue)
         {
-            var appointment = await _appointmentRepository.GetByIdAsync(vaccinationRecord.AppointmentId.Value);
+            var appointment = await _appointmentRepository.GetByIdIncludingDeletedAsync(vaccinationRecord.AppointmentId.Value);
             if (appointment is null)
             {
                 throw new InvalidOperationException("Vaccination appointment was not found.");

@@ -21,6 +21,13 @@ public class PetRepository : IPetRepository
             .ToListAsync();
     }
 
+    public async Task<List<Pet>> GetAllIncludingInactiveAsync()
+    {
+        return await _context.Pets
+            .OrderBy(p => p.PatientNo)
+            .ToListAsync();
+    }
+
     public async Task<Pet?> GetByIdAsync(int id)
     {
         return await _context.Pets
@@ -63,7 +70,12 @@ public class PetRepository : IPetRepository
 
     public void Update(Pet pet)
     {
-        _context.Pets.Update(pet);
+        if (_context.Entry(pet).State == EntityState.Detached)
+        {
+            _context.Pets.Attach(pet);
+        }
+
+        _context.Entry(pet).State = EntityState.Modified;
     }
 
     public void Delete(Pet pet)

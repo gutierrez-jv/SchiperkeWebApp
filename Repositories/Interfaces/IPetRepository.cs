@@ -5,6 +5,7 @@ namespace SchiperkeWebApp.Repositories.Interfaces;
 public interface IPetRepository
 {
     Task<List<Pet>> GetAllAsync();
+    Task<List<Pet>> GetAllIncludingInactiveAsync();
     Task<Pet?> GetByIdAsync(int id);
     Task<Pet?> GetByPatientNoAsync(string patientNo);
     Task<bool> PatientNoExistsAsync(string patientNo);

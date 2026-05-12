@@ -8,7 +8,7 @@
     <div>
         <div class="page-kicker">Schedule</div>
         <h1>Appointments</h1>
-        <p class="page-subtitle">Review client booking requests and manage appointment status without owner/client data.</p>
+        <p class="page-subtitle">Review public booking requests and manage appointment status without personal contact data.</p>
     </div>
     <div class="page-actions">
         <a asp-action="Create" class="btn btn-primary">Create Appointment</a>
@@ -93,6 +93,24 @@
                         && !string.IsNullOrWhiteSpace(item.PetName)
                         && !string.IsNullOrWhiteSpace(item.Species)
                         && !string.IsNullOrWhiteSpace(item.Sex);
+                    var isPending = item.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase);
+                    var isConfirmed = item.Status.Equals("Confirmed", StringComparison.OrdinalIgnoreCase);
+                    var isCompleted = item.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase);
+                    var recordController = item.ServiceType switch
+                    {
+                        "Consultation" => "ConsultationRecords",
+                        "Vaccination" => "VaccinationRecords",
+                        "Deworming" or "Internal Antiparasitic" or "External Antiparasitic" or "General Wellness" => "WellnessRecords",
+                        _ => null
+                    };
+                    var hasMatchingRecord = item.ServiceType switch
+                    {
+                        "Consultation" => item.ConsultationRecords.Any(record => !record.IsDeleted),
+                        "Vaccination" => item.VaccinationRecords.Any(record => !record.IsDeleted),
+                        "Deworming" or "Internal Antiparasitic" or "External Antiparasitic" or "General Wellness" => item.WellnessRecords.Any(record => !record.IsDeleted),
+                        _ => false
+                    };
+                    var canCreateRecord = isCompleted && item.PetId.HasValue && recordController is not null && !hasMatchingRecord;
                     <tr>
                         <td><strong>@appointmentCode</strong></td>
                         <td>@patientNo</td>
@@ -109,15 +127,39 @@
                         <td><span class="status-badge status-@item.Status.ToLowerInvariant().Replace(" ", "-")">@item.Status</span></td>
                         <td>@item.ReasonForVisit</td>
                         <td class="text-end action-cell">
-                            @if (canRegisterPatient)
-                            {
-                                <form asp-action="RegisterPatient" asp-route-id="@item.AppointmentId" method="post" class="d-inline">
-                                    <button type="submit" class="btn btn-sm btn-success">Register</button>
-                                </form>
-                            }
-                            <a asp-action="Details" asp-route-id="@item.AppointmentId" class="btn btn-sm btn-outline-secondary">Details</a>
-                            <a asp-action="Edit" asp-route-id="@item.AppointmentId" class="btn btn-sm btn-outline-primary">Edit</a>
-                            <a asp-action="Delete" asp-route-id="@item.AppointmentId" class="btn btn-sm btn-outline-danger">Delete</a>
+                            <div class="action-group">
+                                @if (isPending)
+                                {
+                                    <form asp-action="UpdateStatus" asp-route-id="@item.AppointmentId" method="post">
+                                        <input type="hidden" name="status" value="Confirmed" />
+                                        <button type="submit" class="btn btn-sm btn-success">Confirm</button>
+                                    </form>
+                                }
+                                @if (isConfirmed)
+                                {
+                                    <form asp-action="UpdateStatus" asp-route-id="@item.AppointmentId" method="post">
+                                        <input type="hidden" name="status" value="Completed" />
+                                        <button type="submit" class="btn btn-sm btn-success">Complete</button>
+                                    </form>
+                                    <form asp-action="UpdateStatus" asp-route-id="@item.AppointmentId" method="post">
+                                        <input type="hidden" name="status" value="No-Show" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">No-Show</button>
+                                    </form>
+                                }
+                                @if (canRegisterPatient)
+                                {
+                                    <form asp-action="RegisterPatient" asp-route-id="@item.AppointmentId" method="post">
+                                        <button type="submit" class="btn btn-sm btn-success">Register</button>
+                                    </form>
+                                }
+                                @if (canCreateRecord)
+                                {
+                                    <a asp-controller="@recordController" asp-action="Create" asp-route-appointmentId="@item.AppointmentId" class="btn btn-sm btn-success">Record</a>
+                                }
+                                <a asp-action="Details" asp-route-id="@item.AppointmentId" class="btn btn-sm btn-outline-secondary">Details</a>
+                                <a asp-action="Edit" asp-route-id="@item.AppointmentId" class="btn btn-sm btn-outline-primary">Edit</a>
+                                <a asp-action="Delete" asp-route-id="@item.AppointmentId" class="btn btn-sm btn-outline-danger">Delete</a>
+                            </div>
                         </td>
                     </tr>
                 }

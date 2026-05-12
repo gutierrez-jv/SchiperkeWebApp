@@ -41,13 +41,13 @@ public class PetsController : Controller
     {
         if (id is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         var pet = await _petService.GetByIdAsync(id.Value);
         if (pet is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         var model = new PetProfileViewModel
@@ -62,9 +62,12 @@ public class PetsController : Controller
         return View(model);
     }
 
-    public IActionResult Create()
+    public async Task<IActionResult> Create()
     {
-        return View(new PetFormViewModel());
+        return View(new PetFormViewModel
+        {
+            PatientNo = await _petService.GeneratePatientNoAsync()
+        });
     }
 
     [HttpPost]
@@ -92,13 +95,13 @@ public class PetsController : Controller
     {
         if (id is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         var pet = await _petService.GetByIdAsync(id.Value);
         if (pet is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         return View(MapToFormModel(pet));
@@ -134,11 +137,13 @@ public class PetsController : Controller
     {
         if (id is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         var pet = await _petService.GetByIdAsync(id.Value);
-        return pet is null ? NotFound() : View(pet);
+        return pet is null
+            ? RedirectToAction(nameof(Index))
+            : View(pet);
     }
 
     [HttpPost, ActionName("Delete")]
@@ -172,7 +177,7 @@ public class PetsController : Controller
         return new Pet
         {
             PetId = model.PetId,
-            PatientNo = model.PatientNo,
+            PatientNo = model.PatientNo ?? string.Empty,
             PetName = model.PetName,
             Species = model.Species,
             Breed = model.Breed,

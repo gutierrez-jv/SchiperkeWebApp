@@ -18,7 +18,7 @@
     <dd class="col-sm-9">@Model.Role</dd>
 </dl>
 
-<form asp-action="Delete" method="post">
+<form asp-action="Delete" method="post" data-paws-confirm="Delete this user account? The account will be hidden from active lists but kept in the database.">
     <input type="hidden" asp-for="UserId" />
     <button type="submit" class="btn btn-danger">Delete</button>
     <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>

@@ -18,6 +18,9 @@ public class AppointmentRepository : IAppointmentRepository
         return await _context.Appointments
             .Include(a => a.Pet)
             .Include(a => a.CreatedByUser)
+            .Include(a => a.ConsultationRecords)
+            .Include(a => a.VaccinationRecords)
+            .Include(a => a.WellnessRecords)
             .Where(a => !a.IsDeleted)
             .OrderByDescending(a => a.AppointmentDate)
             .ThenBy(a => a.AppointmentTime)
@@ -29,7 +32,21 @@ public class AppointmentRepository : IAppointmentRepository
         return await _context.Appointments
             .Include(a => a.Pet)
             .Include(a => a.CreatedByUser)
+            .Include(a => a.ConsultationRecords)
+            .Include(a => a.VaccinationRecords)
+            .Include(a => a.WellnessRecords)
             .FirstOrDefaultAsync(a => a.AppointmentId == id && !a.IsDeleted);
+    }
+
+    public async Task<Appointment?> GetByIdIncludingDeletedAsync(int id)
+    {
+        return await _context.Appointments
+            .Include(a => a.Pet)
+            .Include(a => a.CreatedByUser)
+            .Include(a => a.ConsultationRecords)
+            .Include(a => a.VaccinationRecords)
+            .Include(a => a.WellnessRecords)
+            .FirstOrDefaultAsync(a => a.AppointmentId == id);
     }
 
     public async Task<Appointment?> GetByAppointmentCodeAsync(string appointmentCode)

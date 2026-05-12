@@ -1,0 +1,50 @@
+@{
+    ViewData["Title"] = "Request Status";
+    var statusCode = ViewData["StatusCode"] is int code ? code : 0;
+    var originalPath = ViewData["OriginalPath"] as string;
+    var heading = statusCode switch
+    {
+        404 => "Page Not Found",
+        403 => "Access Restricted",
+        429 => "Too Many Requests",
+        _ => "Request Could Not Be Completed"
+    };
+    var message = statusCode switch
+    {
+        404 => "The item you requested is no longer available or the link is outdated.",
+        403 => "You do not have permission to open this page.",
+        429 => "Too many requests were sent in a short time. Please wait and try again.",
+        _ => "An unexpected request status occurred."
+    };
+}
+
+<div class="page-header">
+    <div>
+        <div class="page-kicker">System Message</div>
+        <h1>@heading</h1>
+        <p class="page-subtitle">@message</p>
+    </div>
+</div>
+
+<section class="content-panel">
+    <dl class="row">
+        <dt>Status Code</dt>
+        <dd>@statusCode</dd>
+        @if (!string.IsNullOrWhiteSpace(originalPath))
+        {
+            <dt>Requested Path</dt>
+            <dd>@originalPath</dd>
+        }
+    </dl>
+    <div class="form-actions mt-3">
+        <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Back Home</a>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <a asp-controller="Appointments" asp-action="Index" class="btn btn-outline-primary">Appointments</a>
+        }
+        else
+        {
+            <a asp-controller="Appointments" asp-action="Book" class="btn btn-outline-primary">Book Appointment</a>
+        }
+    </div>
+</section>

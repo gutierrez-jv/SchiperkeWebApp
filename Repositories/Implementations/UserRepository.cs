@@ -40,7 +40,12 @@ public class UserRepository : IUserRepository
 
     public void Update(User user)
     {
-        _context.Users.Update(user);
+        if (_context.Entry(user).State == EntityState.Detached)
+        {
+            _context.Users.Attach(user);
+        }
+
+        _context.Entry(user).State = EntityState.Modified;
     }
 
     public void Delete(User user)

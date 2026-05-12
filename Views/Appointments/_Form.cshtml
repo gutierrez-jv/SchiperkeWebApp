@@ -1,7 +1,15 @@
 @model AppointmentFormViewModel
 
+@{
+    var hasPatientNumber = !string.IsNullOrWhiteSpace(Model.PatientNoInput);
+    var hasRegisteredPatient = Model.PetId.HasValue;
+    var showPatientNumberInput = Model.IsExistingPatient || hasPatientNumber || hasRegisteredPatient;
+    var lockPatientNumber = hasPatientNumber || hasRegisteredPatient;
+}
+
 <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
+<div data-staff-appointment-form>
 <input asp-for="CreatedByUserId" type="hidden" />
 <input asp-for="PetId" type="hidden" />
 <input asp-for="AppointmentCode" type="hidden" />
@@ -22,47 +30,56 @@
         <label asp-for="IsExistingPatient" class="form-check-label"></label>
     </div>
     <p class="form-hint">Use the patient number only if the pet already has a clinic record.</p>
-    <div class="row g-3">
+    <div class="row g-3" data-staff-patient-number-section hidden="@(!showPatientNumberInput)">
         <div class="col-md-6">
             <label asp-for="PatientNoInput" class="form-label"></label>
-            <input asp-for="PatientNoInput" class="form-control" autocomplete="off" />
+            @if (lockPatientNumber)
+            {
+                <input asp-for="PatientNoInput" class="form-control patient-number-disabled" readonly />
+                <span class="form-hint">Patient number is pulled from the registered patient record and cannot be changed here.</span>
+            }
+            else
+            {
+                <input asp-for="PatientNoInput" class="form-control" autocomplete="off" />
+            }
             <span asp-validation-for="PatientNoInput" class="text-danger"></span>
         </div>
-        <div class="col-md-6">
-            <label class="form-label" for="CreatedByDisplayName">Created By</label>
-            <input id="CreatedByDisplayName" value="@Model.CreatedByDisplayName" class="form-control" readonly />
-        </div>
+    </div>
+    <div class="locked-context-card" data-staff-new-patient-note hidden="@showPatientNumberInput">
+        <span>New patient appointment</span>
+        <strong>Patient number will be generated after registration.</strong>
+        <small>Use Register on the appointment list/details page after the clinic confirms the visit.</small>
     </div>
 </section>
 
-<section class="form-section">
+<section class="form-section" data-staff-pet-details-section hidden="@showPatientNumberInput">
     <h2 class="h5">Pet Details</h2>
     <div class="row g-3">
         <div class="col-md-6">
             <label asp-for="PetName" class="form-label"></label>
-            <input asp-for="PetName" class="form-control" autocomplete="off" />
+            <input asp-for="PetName" class="form-control" autocomplete="off" data-staff-pet-detail-field />
             <span asp-validation-for="PetName" class="text-danger"></span>
         </div>
         <div class="col-md-3">
             <label asp-for="Species" class="form-label"></label>
-            <input asp-for="Species" class="form-control" />
+            <input asp-for="Species" class="form-control" data-staff-pet-detail-field />
             <span asp-validation-for="Species" class="text-danger"></span>
         </div>
         <div class="col-md-3">
             <label asp-for="Sex" class="form-label"></label>
-            <select asp-for="Sex" asp-items="Model.SexOptions" class="form-select">
+            <select asp-for="Sex" asp-items="Model.SexOptions" class="form-select" data-staff-pet-detail-field>
                 <option value="">Select sex</option>
             </select>
             <span asp-validation-for="Sex" class="text-danger"></span>
         </div>
         <div class="col-md-6">
             <label asp-for="Breed" class="form-label"></label>
-            <input asp-for="Breed" class="form-control" autocomplete="off" />
+            <input asp-for="Breed" class="form-control" autocomplete="off" data-staff-pet-detail-field />
             <span asp-validation-for="Breed" class="text-danger"></span>
         </div>
         <div class="col-md-6">
             <label asp-for="Color" class="form-label"></label>
-            <input asp-for="Color" class="form-control" autocomplete="off" />
+            <input asp-for="Color" class="form-control" autocomplete="off" data-staff-pet-detail-field />
             <span asp-validation-for="Color" class="text-danger"></span>
         </div>
     </div>
@@ -78,8 +95,19 @@
         </div>
         <div class="col-md-3">
             <label asp-for="AppointmentTime" class="form-label"></label>
-            <select asp-for="AppointmentTime" asp-items="Model.TimeOptions" class="form-select">
+            <select id="AppointmentTime" name="AppointmentTime" class="form-select">
                 <option value="">Select time</option>
+                @foreach (var option in Model.TimeOptions)
+                {
+                    if (option.Selected)
+                    {
+                        <option value="@option.Value" selected>@option.Text</option>
+                    }
+                    else
+                    {
+                        <option value="@option.Value">@option.Text</option>
+                    }
+                }
             </select>
             <span asp-validation-for="AppointmentTime" class="text-danger"></span>
         </div>
@@ -109,26 +137,16 @@
         </div>
     </div>
 </section>
+</div>
 
 <section class="form-section" id="cancellationSection">
     <h2 class="h5">Cancellation</h2>
-    <p class="form-hint">Used only when the appointment status is Cancelled. This reason can be shown in public appointment tracking.</p>
+    <p class="form-hint">Add the clinic reason shown when the client checks a cancelled appointment.</p>
     <div class="row g-3">
         <div class="col-12">
             <label asp-for="CancellationReason" class="form-label"></label>
             <textarea asp-for="CancellationReason" class="form-control" rows="3" maxlength="500"></textarea>
             <span asp-validation-for="CancellationReason" class="text-danger"></span>
         </div>
-        @if (!string.IsNullOrWhiteSpace(Model.CancelledBy) || Model.CancelledAt.HasValue)
-        {
-            <div class="col-md-6">
-                <label class="form-label">Last Cancelled By</label>
-                <input value="@Model.CancelledBy" class="form-control" readonly />
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">Last Cancelled At</label>
-                <input value="@Model.CancelledAt?.ToString("yyyy-MM-dd HH:mm")" class="form-control" readonly />
-            </div>
-        }
     </div>
 </section>

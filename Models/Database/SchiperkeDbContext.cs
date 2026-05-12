@@ -19,11 +19,17 @@ public partial class SchiperkeDbContext : DbContext
 
     public virtual DbSet<AppointmentsArchive> AppointmentsArchives { get; set; }
 
+    public virtual DbSet<ClientAccount> ClientAccounts { get; set; }
+
+    public virtual DbSet<ClientPetLink> ClientPetLinks { get; set; }
+
     public virtual DbSet<ConsultationRecord> ConsultationRecords { get; set; }
 
     public virtual DbSet<ConsultationRecordsArchive> ConsultationRecordsArchives { get; set; }
 
     public virtual DbSet<Pet> Pets { get; set; }
+
+    public virtual DbSet<PetRecordAccessRequest> PetRecordAccessRequests { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
 
@@ -34,6 +40,10 @@ public partial class SchiperkeDbContext : DbContext
     public virtual DbSet<WellnessRecord> WellnessRecords { get; set; }
 
     public virtual DbSet<WellnessRecordsArchive> WellnessRecordsArchives { get; set; }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Server=DESKTOP-TM6EI00;Database=SchiperkeDb;Trusted_Connection=True;TrustServerCertificate=True");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -94,6 +104,58 @@ public partial class SchiperkeDbContext : DbContext
             entity.Property(e => e.Remarks).HasMaxLength(500);
             entity.Property(e => e.ServiceType).HasMaxLength(50);
             entity.Property(e => e.Status).HasMaxLength(30);
+        });
+
+        modelBuilder.Entity<ClientAccount>(entity =>
+        {
+            entity.HasIndex(e => e.Username, "UX_ClientAccounts_Username").IsUnique();
+
+            entity.Property(e => e.CreatedAt)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.PasswordHash).HasMaxLength(255);
+            entity.Property(e => e.SecurityStamp).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.UpdatedAt).HasPrecision(0);
+            entity.Property(e => e.Username).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<ClientPetLink>(entity =>
+        {
+            entity.HasIndex(e => e.PetId, "IX_ClientPetLinks_PetId");
+
+            entity.HasIndex(e => new { e.ClientAccountId, e.PetId }, "UX_ClientPetLinks_Active_Client_Pet")
+                .IsUnique()
+                .HasFilter("([RevokedAt] IS NULL)");
+
+            entity.Property(e => e.CreatedAt)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.LinkMethod)
+                .HasMaxLength(30)
+                .HasDefaultValue("PatientNoPetName");
+            entity.Property(e => e.LinkStatus)
+                .HasMaxLength(20)
+                .HasDefaultValue("Active");
+            entity.Property(e => e.RevokedAt).HasPrecision(0);
+
+            entity.HasOne(d => d.ClientAccount).WithMany(p => p.ClientPetLinks)
+                .HasForeignKey(d => d.ClientAccountId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ClientPetLinks_ClientAccounts");
+
+            entity.HasOne(d => d.LinkedByUser).WithMany(p => p.ClientPetLinkLinkedByUsers)
+                .HasForeignKey(d => d.LinkedByUserId)
+                .HasConstraintName("FK_ClientPetLinks_LinkedByUser");
+
+            entity.HasOne(d => d.Pet).WithMany(p => p.ClientPetLinks)
+                .HasForeignKey(d => d.PetId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ClientPetLinks_Pets");
+
+            entity.HasOne(d => d.RevokedByUser).WithMany(p => p.ClientPetLinkRevokedByUsers)
+                .HasForeignKey(d => d.RevokedByUserId)
+                .HasConstraintName("FK_ClientPetLinks_RevokedByUser");
         });
 
         modelBuilder.Entity<ConsultationRecord>(entity =>
@@ -167,6 +229,41 @@ public partial class SchiperkeDbContext : DbContext
             entity.Property(e => e.Sex).HasMaxLength(20);
             entity.Property(e => e.Species).HasMaxLength(50);
             entity.Property(e => e.Weight).HasColumnType("decimal(6, 2)");
+        });
+
+        modelBuilder.Entity<PetRecordAccessRequest>(entity =>
+        {
+            entity.HasIndex(e => e.PetId, "IX_PetRecordAccessRequests_PetId");
+
+            entity.HasIndex(e => new { e.ClientAccountId, e.PetId, e.RequestType }, "UX_PetRecordAccessRequests_Open_Request")
+                .IsUnique()
+                .HasFilter("([Status]=N'Pending')");
+
+            entity.Property(e => e.RequestType)
+                .HasMaxLength(30)
+                .HasDefaultValue("MedicalRecords");
+            entity.Property(e => e.RequestedAt)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.ReviewedAt).HasPrecision(0);
+            entity.Property(e => e.StaffNotes).HasMaxLength(500);
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .HasDefaultValue("Pending");
+
+            entity.HasOne(d => d.ClientAccount).WithMany(p => p.PetRecordAccessRequests)
+                .HasForeignKey(d => d.ClientAccountId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PetRecordAccessRequests_ClientAccounts");
+
+            entity.HasOne(d => d.Pet).WithMany(p => p.PetRecordAccessRequests)
+                .HasForeignKey(d => d.PetId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PetRecordAccessRequests_Pets");
+
+            entity.HasOne(d => d.ReviewedByUser).WithMany(p => p.PetRecordAccessRequests)
+                .HasForeignKey(d => d.ReviewedByUserId)
+                .HasConstraintName("FK_PetRecordAccessRequests_ReviewedByUser");
         });
 
         modelBuilder.Entity<User>(entity =>

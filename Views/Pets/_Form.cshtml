@@ -1,11 +1,23 @@
 @model PetFormViewModel
 
+@{
+    var isNewPet = Model.PetId == 0;
+}
+
 <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
 <div class="row g-3">
     <div class="col-md-4">
         <label asp-for="PatientNo" class="form-label"></label>
-        <input asp-for="PatientNo" class="form-control" />
+        <input asp-for="PatientNo" class="form-control" readonly />
+        @if (isNewPet)
+        {
+            <span class="form-hint">Generated automatically when the patient record is saved.</span>
+        }
+        else
+        {
+            <span class="form-hint">Patient numbers stay fixed after registration.</span>
+        }
         <span asp-validation-for="PatientNo" class="text-danger"></span>
     </div>
     <div class="col-md-4">

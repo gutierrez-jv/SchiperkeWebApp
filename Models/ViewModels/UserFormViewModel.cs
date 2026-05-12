@@ -12,7 +12,7 @@ public class UserFormViewModel
 
     [DataType(DataType.Password)]
     [Display(Name = "Password")]
-    public string PasswordHash { get; set; } = string.Empty;
+    public string? PasswordHash { get; set; }
 
     [Required]
     [Display(Name = "Full Name")]

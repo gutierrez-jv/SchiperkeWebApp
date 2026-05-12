@@ -1,0 +1,23 @@
+@model ErrorViewModel
+
+@{
+    ViewData["Title"] = "System Error";
+}
+
+<div class="page-header">
+    <div>
+        <div class="page-kicker">System Message</div>
+        <h1>Something Went Wrong</h1>
+        <p class="page-subtitle">The request could not be completed. Please try again.</p>
+    </div>
+</div>
+
+<section class="content-panel">
+    <dl class="row">
+        <dt>Request ID</dt>
+        <dd>@(Model?.ShowRequestId == true ? Model.RequestId : "Not available")</dd>
+    </dl>
+    <div class="form-actions mt-3">
+        <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Back Home</a>
+    </div>
+</section>

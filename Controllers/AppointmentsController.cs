@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.RateLimiting;
 using SchiperkeWebApp.Models.Database;
 using SchiperkeWebApp.Models.ViewModels;
 using SchiperkeWebApp.Services.Interfaces;
@@ -87,19 +88,23 @@ public class AppointmentsController : Controller
     {
         if (id is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         var appointment = await _appointmentService.GetByIdAsync(id.Value);
-        return appointment is null ? NotFound() : View(appointment);
+        return appointment is null
+            ? RedirectToAction(nameof(Index))
+            : View(appointment);
     }
 
     public async Task<IActionResult> Create()
     {
+        var defaultSchedule = GetDefaultAppointmentSchedule();
         var model = await BuildAppointmentFormAsync(new AppointmentFormViewModel
         {
             Status = "Pending",
-            AppointmentTime = new TimeOnly(8, 0)
+            AppointmentDate = defaultSchedule.Date,
+            AppointmentTime = defaultSchedule.Time
         });
 
         return View(model);
@@ -119,6 +124,8 @@ public class AppointmentsController : Controller
         {
             model.Status = "Pending";
         }
+
+        await PrepareExistingPatientFormAsync(model);
 
         if (!ModelState.IsValid)
         {
@@ -140,14 +147,17 @@ public class AppointmentsController : Controller
     [AllowAnonymous]
     public IActionResult Book()
     {
+        var defaultSchedule = GetDefaultAppointmentSchedule();
         return View(BuildPublicAppointmentRequestModel(new PublicAppointmentRequestViewModel
         {
-            AppointmentTime = new TimeOnly(8, 0)
+            AppointmentDate = defaultSchedule.Date,
+            AppointmentTime = defaultSchedule.Time
         }));
     }
 
     [AllowAnonymous]
     [HttpGet]
+    [EnableRateLimiting("PublicLookupLimiter")]
     public async Task<IActionResult> VerifyPatientNumber(string? patientNo)
     {
         if (string.IsNullOrWhiteSpace(patientNo))
@@ -179,9 +189,11 @@ public class AppointmentsController : Controller
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("PublicBookingLimiter")]
     public async Task<IActionResult> Book(PublicAppointmentRequestViewModel model)
     {
         model = BuildPublicAppointmentRequestModel(model);
+        await PrepareExistingPatientFormAsync(model);
 
         if (!ModelState.IsValid)
         {
@@ -233,6 +245,7 @@ public class AppointmentsController : Controller
 
     [AllowAnonymous]
     [HttpGet]
+    [EnableRateLimiting("PublicLookupLimiter")]
     public async Task<IActionResult> CheckAppointmentStatus(string? appointmentCode, string? patientIdentifier)
     {
         if (string.IsNullOrWhiteSpace(appointmentCode) || string.IsNullOrWhiteSpace(patientIdentifier))
@@ -273,13 +286,13 @@ public class AppointmentsController : Controller
     {
         if (id is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         var appointment = await _appointmentService.GetByIdAsync(id.Value);
         if (appointment is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         return View(await BuildAppointmentFormAsync(MapToFormModel(appointment)));
@@ -299,6 +312,8 @@ public class AppointmentsController : Controller
         {
             model.CreatedByUserId = currentUserId.Value;
         }
+
+        await PrepareExistingPatientFormAsync(model);
 
         if (!ModelState.IsValid)
         {
@@ -321,11 +336,13 @@ public class AppointmentsController : Controller
     {
         if (id is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         var appointment = await _appointmentService.GetByIdAsync(id.Value);
-        return appointment is null ? NotFound() : View(appointment);
+        return appointment is null
+            ? RedirectToAction(nameof(Index))
+            : View(appointment);
     }
 
     [HttpPost, ActionName("Delete")]
@@ -333,6 +350,31 @@ public class AppointmentsController : Controller
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
         await _appointmentService.DeleteAsync(id);
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateStatus(int id, string status)
+    {
+        try
+        {
+            var appointment = await _appointmentService.GetByIdAsync(id);
+            if (appointment is null)
+            {
+                TempData["ErrorMessage"] = "Appointment not found or already deleted.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            appointment.Status = status;
+            await _appointmentService.UpdateAsync(appointment);
+            TempData["SuccessMessage"] = $"Appointment {GetAppointmentCode(appointment)} updated to {appointment.Status}.";
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
+
         return RedirectToAction(nameof(Index));
     }
 
@@ -394,6 +436,67 @@ public class AppointmentsController : Controller
         return user is null ? null : userId;
     }
 
+    private async Task PrepareExistingPatientFormAsync(AppointmentFormViewModel model)
+    {
+        if (!model.IsExistingPatient && string.IsNullOrWhiteSpace(model.PatientNoInput))
+        {
+            return;
+        }
+
+        SuppressPetDetailValidation();
+
+        var pet = await GetPetByPatientNumberAsync(model.PatientNoInput);
+        if (pet is null)
+        {
+            return;
+        }
+
+        model.PetId = pet.PetId;
+        model.PatientNoInput = pet.PatientNo;
+        model.PetName = pet.PetName;
+        model.Species = pet.Species;
+        model.Breed = pet.Breed;
+        model.Sex = pet.Sex;
+        model.Color = pet.Color;
+    }
+
+    private async Task PrepareExistingPatientFormAsync(PublicAppointmentRequestViewModel model)
+    {
+        if (!model.IsExistingPatient && string.IsNullOrWhiteSpace(model.PatientNoInput))
+        {
+            return;
+        }
+
+        var pet = await GetPetByPatientNumberAsync(model.PatientNoInput);
+        if (pet is null)
+        {
+            return;
+        }
+
+        model.PatientNoInput = pet.PatientNo;
+        model.PetName = pet.PetName;
+        model.Species = pet.Species;
+        model.Breed = pet.Breed;
+        model.Sex = pet.Sex;
+        model.Color = pet.Color;
+    }
+
+    private async Task<Pet?> GetPetByPatientNumberAsync(string? patientNo)
+    {
+        return string.IsNullOrWhiteSpace(patientNo)
+            ? null
+            : await _petService.GetByPatientNoAsync(patientNo.Trim());
+    }
+
+    private void SuppressPetDetailValidation()
+    {
+        ModelState.Remove(nameof(AppointmentFormViewModel.PetName));
+        ModelState.Remove(nameof(AppointmentFormViewModel.Species));
+        ModelState.Remove(nameof(AppointmentFormViewModel.Sex));
+        ModelState.Remove(nameof(AppointmentFormViewModel.Breed));
+        ModelState.Remove(nameof(AppointmentFormViewModel.Color));
+    }
+
     private static IEnumerable<SelectListItem> BuildValueOptions(IEnumerable<string> values, string? selectedValue)
     {
         return values.Select(value => new SelectListItem(value, value, value.Equals(selectedValue, StringComparison.OrdinalIgnoreCase)));
@@ -412,6 +515,21 @@ public class AppointmentsController : Controller
         return _appointmentService.GetAllowedAppointmentTimes()
             .Select(time => new SelectListItem(time.ToString("hh:mm tt"), time.ToString("HH\\:mm"), time == selectedTime))
             .ToList();
+    }
+
+    private (DateOnly Date, TimeOnly Time) GetDefaultAppointmentSchedule()
+    {
+        var allowedTimes = _appointmentService.GetAllowedAppointmentTimes();
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var now = TimeOnly.FromDateTime(DateTime.Now);
+        var nextAvailableTime = allowedTimes.FirstOrDefault(time => time > now);
+
+        if (nextAvailableTime != default)
+        {
+            return (today, nextAvailableTime);
+        }
+
+        return (today.AddDays(1), allowedTimes.First());
     }
 
     private static bool Contains(string? value, string term)

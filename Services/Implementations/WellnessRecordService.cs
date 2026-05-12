@@ -11,7 +11,7 @@ public class WellnessRecordService : IWellnessRecordService
         "Deworming",
         "Internal Antiparasitic",
         "External Antiparasitic",
-        "General Wellness"
+        "Wellness"
     ];
 
     private readonly IWellnessRecordRepository _wellnessRecordRepository;
@@ -167,7 +167,7 @@ public class WellnessRecordService : IWellnessRecordService
 
         if (wellnessRecord.AppointmentId.HasValue)
         {
-            var appointment = await _appointmentRepository.GetByIdAsync(wellnessRecord.AppointmentId.Value);
+            var appointment = await _appointmentRepository.GetByIdIncludingDeletedAsync(wellnessRecord.AppointmentId.Value);
             if (appointment is null)
             {
                 throw new InvalidOperationException("Wellness appointment was not found.");
@@ -222,10 +222,15 @@ public class WellnessRecordService : IWellnessRecordService
     private static string NormalizeAllowedWellnessType(string wellnessType)
     {
         var value = wellnessType.Trim();
+        if (value.Equals("General Wellness", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Wellness";
+        }
+
         var normalizedValue = AllowedWellnessTypes.FirstOrDefault(type => type.Equals(value, StringComparison.OrdinalIgnoreCase));
         if (normalizedValue is null)
         {
-            throw new ArgumentException("Wellness type must be Deworming, Internal Antiparasitic, External Antiparasitic, or General Wellness.");
+            throw new ArgumentException("Wellness type must be Deworming, Internal Antiparasitic, External Antiparasitic, or Wellness.");
         }
 
         return normalizedValue;
@@ -236,6 +241,7 @@ public class WellnessRecordService : IWellnessRecordService
         return serviceType.Equals("Deworming", StringComparison.OrdinalIgnoreCase)
             || serviceType.Equals("Internal Antiparasitic", StringComparison.OrdinalIgnoreCase)
             || serviceType.Equals("External Antiparasitic", StringComparison.OrdinalIgnoreCase)
+            || serviceType.Equals("Wellness", StringComparison.OrdinalIgnoreCase)
             || serviceType.Equals("General Wellness", StringComparison.OrdinalIgnoreCase);
     }
 

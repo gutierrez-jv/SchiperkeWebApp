@@ -4,11 +4,12 @@
 
 <section class="home-hero">
     <div class="home-hero-copy">
-        <div class="eyebrow">PAWS: Schiperke Web App</div>
-        <h1>Patient-Centered Veterinary Care Without Personal Data Exposure</h1>
-        <p>Book pet visits publicly. Keep medical and wellness records available only to authorized clinic staff.</p>
+        <div class="eyebrow">PAWS: Schipperke Web App</div>
+        <h1>Compassionate Care for Every Pet Patient</h1>
+        <p>Book a clinic visit with Schipperke Animal Clinic and Veterinary Supplies, then keep your appointment code for status updates.</p>
         <div class="hero-actions">
             <a asp-controller="Appointments" asp-action="Book" class="btn btn-primary btn-lg">Schedule Your Visit</a>
+            <a asp-controller="Appointments" asp-action="Book" asp-route-track="true" class="btn btn-outline-primary btn-lg">Check Status</a>
             <a asp-controller="Home" asp-action="Contact" class="btn btn-outline-primary btn-lg">Contact Clinic</a>
             @if (User.Identity?.IsAuthenticated == true)
             {
@@ -16,72 +17,12 @@
             }
             else
             {
-                <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary btn-lg">Staff Login</a>
+                <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary btn-lg">Login</a>
             }
         </div>
     </div>
     <div class="home-hero-visual">
-        <img src="~/images/clinic-hero.svg" alt="Veterinary clinic care scene" />
-    </div>
-</section>
-
-<section class="home-dashboard home-dashboard-simple">
-    <div class="dashboard-column quick-actions-column">
-        <div class="section-heading">
-            <h2>Quick Actions</h2>
-        </div>
-        <div class="quick-action-grid">
-            <a asp-controller="Appointments" asp-action="Book" class="action-card action-card-primary">
-                <span class="action-icon">01</span>
-                <strong>Book an Appointment</strong>
-                <span>Choose date, time, and service.</span>
-                <span class="action-link">Schedule Now</span>
-            </a>
-            @if (User.Identity?.IsAuthenticated == true)
-            {
-                <a asp-controller="Pets" asp-action="Index" class="action-card">
-                    <span class="action-icon">02</span>
-                    <strong>Patient Records</strong>
-                    <span>View patient history.</span>
-                    <span class="action-link">Access Records</span>
-                </a>
-            }
-            else
-            {
-                <a asp-controller="Account" asp-action="Login" class="action-card">
-                    <span class="action-icon">02</span>
-                    <strong>Staff Portal</strong>
-                    <span>Secure clinic access.</span>
-                    <span class="action-link">Sign In</span>
-                </a>
-            }
-            <a asp-controller="Home" asp-action="Contact" class="action-card">
-                <span class="action-icon">03</span>
-                <strong>Contact Page</strong>
-                <span>Find clinic contact details.</span>
-                <span class="action-link">View Contact</span>
-            </a>
-        </div>
-    </div>
-
-</section>
-
-<section class="requirement-strip">
-    <div>
-        <strong>Appointment System</strong>
-        <span>Public booking for visit requests.</span>
-    </div>
-    <div>
-        <strong>Pet Records</strong>
-        <span>Patient number, signalment, and medical history.</span>
-    </div>
-    <div>
-        <strong>Vaccination Records</strong>
-        <span>Due dates, overdue tracking, and wellness reminders.</span>
-    </div>
-    <div>
-        <strong>Contact Page</strong>
-        <span>Clinic contact details without private data storage.</span>
+        <img class="home-hero-photo" src="~/images/frontpage-hero.png" alt="Dog and cat welcoming clinic visitors" />
     </div>
 </section>
 
@@ -125,5 +66,31 @@
                 </a>
             }
         </div>
+    </section>
+}
+else
+{
+    <section class="public-home-grid" aria-label="Clinic visit information">
+        <article class="public-home-card public-home-card-featured">
+            <span class="page-kicker">Clinic Information</span>
+            <h2>Schipperke Animal Clinic and Veterinary Supplies</h2>
+            <div class="home-clinic-list">
+                <span><strong>Location</strong> 5HCQ+MCJ, MacArthur Hwy, Angeles, Pampanga</span>
+                <span><strong>Phone</strong> (045) 331 4807</span>
+                <span><strong>Reminder</strong> Call before visiting if you need to confirm clinic hours.</span>
+            </div>
+        </article>
+
+        <article class="public-home-card">
+            <span class="page-kicker">Booking Flow</span>
+            <h2>Request first, then check status</h2>
+            <p>Submit the pet visit details online. The clinic reviews the request and updates it as pending, confirmed, cancelled, completed, or no-show.</p>
+        </article>
+
+        <article class="public-home-card">
+            <span class="page-kicker">Privacy First</span>
+            <h2>Pet-centered records only</h2>
+            <p>PAWS tracks pet patient details, appointment codes, and clinic records without storing owner or client contact information.</p>
+        </article>
     </section>
 }

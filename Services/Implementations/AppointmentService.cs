@@ -1,5 +1,6 @@
 using SchiperkeWebApp.Models.Database;
 using SchiperkeWebApp.Repositories.Interfaces;
+using SchiperkeWebApp.Services;
 using SchiperkeWebApp.Services.Interfaces;
 
 namespace SchiperkeWebApp.Services.Implementations;
@@ -58,11 +59,13 @@ public class AppointmentService : IAppointmentService
 
     public async Task<List<Appointment>> GetAllAsync()
     {
+        await ApplyAutomaticNoShowsAsync();
         return await _appointmentRepository.GetAllAsync();
     }
 
     public async Task<Appointment?> GetByIdAsync(int id)
     {
+        await ApplyAutomaticNoShowsAsync();
         return await _appointmentRepository.GetByIdAsync(id);
     }
 
@@ -78,6 +81,8 @@ public class AppointmentService : IAppointmentService
             throw new ArgumentException("Patient number or pet name is required.");
         }
 
+        await ApplyAutomaticNoShowsAsync();
+
         var appointment = await FindAppointmentByPublicCodeAsync(appointmentCode);
         if (appointment is null)
         {
@@ -89,11 +94,13 @@ public class AppointmentService : IAppointmentService
 
     public async Task<List<Appointment>> GetByPetIdAsync(int petId)
     {
+        await ApplyAutomaticNoShowsAsync();
         return await _appointmentRepository.GetByPetIdAsync(petId);
     }
 
     public async Task<List<Appointment>> GetByDateAsync(DateOnly appointmentDate)
     {
+        await ApplyAutomaticNoShowsAsync();
         return await _appointmentRepository.GetByDateAsync(appointmentDate);
     }
 
@@ -105,58 +112,67 @@ public class AppointmentService : IAppointmentService
         }
 
         var normalizedStatus = NormalizeAllowedValue(status, AllowedStatuses, "Status");
+        await ApplyAutomaticNoShowsAsync();
         return await _appointmentRepository.GetByStatusAsync(normalizedStatus);
     }
 
     public async Task<Pet> RegisterPatientAsync(int appointmentId)
     {
-        var appointment = await _appointmentRepository.GetByIdAsync(appointmentId);
-        if (appointment is null)
+        await PatientNumberCoordinator.Lock.WaitAsync();
+        try
         {
-            throw new InvalidOperationException("Appointment record was not found.");
+            var appointment = await _appointmentRepository.GetByIdAsync(appointmentId);
+            if (appointment is null)
+            {
+                throw new InvalidOperationException("Appointment record was not found.");
+            }
+
+            if (appointment.PetId.HasValue)
+            {
+                throw new InvalidOperationException("This appointment is already linked to a registered patient.");
+            }
+
+            if (!CanRegisterPatient(appointment))
+            {
+                throw new InvalidOperationException("Only confirmed or completed new-patient appointments can be registered.");
+            }
+
+            var pet = new Pet
+            {
+                PatientNo = await GeneratePatientNoAsync(),
+                PetName = NormalizeRequiredText(appointment.PetName),
+                Species = NormalizeRequiredText(appointment.Species),
+                Breed = NormalizeOptionalText(appointment.Breed),
+                Sex = NormalizeRequiredText(appointment.Sex),
+                Color = NormalizeOptionalText(appointment.Color),
+                IsActive = true,
+                CreatedAt = DateTime.Now
+            };
+
+            ValidatePetRegistration(pet);
+
+            await _petRepository.AddAsync(pet);
+            await _petRepository.SaveAsync();
+
+            appointment.PetId = pet.PetId;
+            appointment.PatientNoInput = pet.PatientNo;
+            appointment.IsExistingPatient = true;
+            appointment.PetName = pet.PetName;
+            appointment.Species = pet.Species;
+            appointment.Breed = pet.Breed;
+            appointment.Sex = pet.Sex;
+            appointment.Color = pet.Color;
+            appointment.UpdatedAt = DateTime.Now;
+
+            _appointmentRepository.Update(appointment);
+            await _appointmentRepository.SaveAsync();
+
+            return pet;
         }
-
-        if (appointment.PetId.HasValue)
+        finally
         {
-            throw new InvalidOperationException("This appointment is already linked to a registered patient.");
+            PatientNumberCoordinator.Lock.Release();
         }
-
-        if (!CanRegisterPatient(appointment))
-        {
-            throw new InvalidOperationException("Only confirmed or completed new-patient appointments can be registered.");
-        }
-
-        var pet = new Pet
-        {
-            PatientNo = await GeneratePatientNoAsync(),
-            PetName = NormalizeRequiredText(appointment.PetName),
-            Species = NormalizeRequiredText(appointment.Species),
-            Breed = NormalizeOptionalText(appointment.Breed),
-            Sex = NormalizeRequiredText(appointment.Sex),
-            Color = NormalizeOptionalText(appointment.Color),
-            IsActive = true,
-            CreatedAt = DateTime.Now
-        };
-
-        ValidatePetRegistration(pet);
-
-        await _petRepository.AddAsync(pet);
-        await _petRepository.SaveAsync();
-
-        appointment.PetId = pet.PetId;
-        appointment.PatientNoInput = pet.PatientNo;
-        appointment.IsExistingPatient = true;
-        appointment.PetName = pet.PetName;
-        appointment.Species = pet.Species;
-        appointment.Breed = pet.Breed;
-        appointment.Sex = pet.Sex;
-        appointment.Color = pet.Color;
-        appointment.UpdatedAt = DateTime.Now;
-
-        _appointmentRepository.Update(appointment);
-        await _appointmentRepository.SaveAsync();
-
-        return pet;
     }
 
     public async Task CreateAsync(Appointment appointment)
@@ -310,6 +326,15 @@ public class AppointmentService : IAppointmentService
             throw new ArgumentException("Appointment time must use a 15-minute clinic interval.");
         }
 
+        var statusForScheduleValidation = string.IsNullOrWhiteSpace(appointment.Status)
+            ? "Pending"
+            : appointment.Status;
+
+        if (IsPendingOrConfirmed(statusForScheduleValidation) && IsScheduledInPast(appointment))
+        {
+            throw new ArgumentException("Appointment schedule cannot be in the past.");
+        }
+
         _ = NormalizeAllowedValue(appointment.ServiceType, AllowedServiceTypes, "Service type");
 
         if (!string.IsNullOrWhiteSpace(appointment.Status))
@@ -369,8 +394,8 @@ public class AppointmentService : IAppointmentService
 
     private async Task<string> GeneratePatientNoAsync()
     {
-        var activePets = await _petRepository.GetAllAsync();
-        var nextNumber = activePets
+        var pets = await _petRepository.GetAllIncludingInactiveAsync();
+        var nextNumber = pets
             .Select(p => TryParsePatientNumber(p.PatientNo))
             .DefaultIfEmpty(0)
             .Max() + 1;
@@ -469,6 +494,67 @@ public class AppointmentService : IAppointmentService
     {
         return status.Equals("Confirmed", StringComparison.OrdinalIgnoreCase)
             || status.Equals("Completed", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task ApplyAutomaticNoShowsAsync()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var appointments = await _appointmentRepository.GetAllAsync();
+        var staleAppointments = appointments
+            .Where(appointment =>
+                appointment.AppointmentDate < today &&
+                IsPendingOrConfirmed(appointment.Status))
+            .ToList();
+
+        if (staleAppointments.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var appointment in staleAppointments)
+        {
+            if (appointment.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
+            {
+                appointment.Status = "Cancelled";
+                appointment.CancellationReason ??= "The appointment date passed before clinic confirmation.";
+                appointment.CancelledBy = "System";
+                appointment.CancelledAt ??= DateTime.Now;
+            }
+            else
+            {
+                appointment.Status = "No-Show";
+                appointment.CancellationReason = null;
+                appointment.CancelledBy = null;
+                appointment.CancelledAt = null;
+            }
+
+            appointment.UpdatedAt = DateTime.Now;
+            _appointmentRepository.Update(appointment);
+        }
+
+        await _appointmentRepository.SaveAsync();
+    }
+
+    private static bool IsPendingOrConfirmed(string? status)
+    {
+        return status?.Equals("Pending", StringComparison.OrdinalIgnoreCase) == true
+            || status?.Equals("Confirmed", StringComparison.OrdinalIgnoreCase) == true;
+    }
+
+    private static bool IsScheduledInPast(Appointment appointment)
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        if (appointment.AppointmentDate < today)
+        {
+            return true;
+        }
+
+        if (appointment.AppointmentDate > today)
+        {
+            return false;
+        }
+
+        return appointment.AppointmentTime < TimeOnly.FromDateTime(DateTime.Now);
     }
 
     private static void ApplyCancellationState(Appointment appointment)

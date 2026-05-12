@@ -1,14 +1,14 @@
 @model LoginViewModel
 
 @{
-    ViewData["Title"] = "Staff Login";
+    ViewData["Title"] = "Login";
 }
 
 <section class="auth-layout">
     <div class="auth-panel">
         <div class="page-kicker">Secure Workspace</div>
-        <h1>Staff Login</h1>
-        <p class="auth-copy">Admin and staff access is required for patient records and clinic operations.</p>
+        <h1>Login</h1>
+        <p class="auth-copy">Authorized clinic users can manage appointments, patient records, and medical workflows.</p>
 
         <form asp-action="Login" method="post" class="mt-4">
             <input asp-for="ReturnUrl" type="hidden" />
@@ -34,8 +34,8 @@
     </div>
 
     <aside class="auth-aside">
-        <h2 class="h4">Records stay private.</h2>
-        <p>The public can book appointments, while patient records remain limited to authorized clinic users.</p>
+        <h2 class="h4">Clinic workspace</h2>
+        <p>Use your assigned account to review bookings and update patient-centered clinic records.</p>
     </aside>
 </section>
 

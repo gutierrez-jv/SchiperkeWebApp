@@ -25,11 +25,13 @@ public class UsersController : Controller
     {
         if (id is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         var user = await _userService.GetByIdAsync(id.Value);
-        return user is null ? NotFound() : View(user);
+        return user is null
+            ? RedirectToAction(nameof(Index))
+            : View(user);
     }
 
     public IActionResult Create()
@@ -62,13 +64,13 @@ public class UsersController : Controller
     {
         if (id is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         var user = await _userService.GetByIdAsync(id.Value);
         if (user is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         return View(MapToFormModel(user));
@@ -104,11 +106,13 @@ public class UsersController : Controller
     {
         if (id is null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
         var user = await _userService.GetByIdAsync(id.Value);
-        return user is null ? NotFound() : View(user);
+        return user is null
+            ? RedirectToAction(nameof(Index))
+            : View(user);
     }
 
     [HttpPost, ActionName("Delete")]
@@ -125,7 +129,7 @@ public class UsersController : Controller
         {
             UserId = user.UserId,
             Username = user.Username,
-            PasswordHash = string.Empty,
+            PasswordHash = null,
             FullName = user.FullName,
             Role = user.Role
         };
@@ -137,7 +141,7 @@ public class UsersController : Controller
         {
             UserId = model.UserId,
             Username = model.Username,
-            PasswordHash = model.PasswordHash,
+            PasswordHash = model.PasswordHash ?? string.Empty,
             FullName = model.FullName,
             Role = model.Role
         };

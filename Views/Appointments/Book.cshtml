@@ -6,9 +6,9 @@
 
 <div class="page-header">
     <div>
-        <div class="page-kicker">Public Booking</div>
+        <div class="page-kicker">Booking</div>
         <h1>Book Appointment</h1>
-        <p class="page-subtitle">Request a clinic visit using pet details only. No owner or client contact information is stored.</p>
+        <p class="page-subtitle">Choose a visit schedule and service for the pet patient.</p>
     </div>
     <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#appointmentStatusModal">
         Check Appointment Status
@@ -24,8 +24,8 @@
             <input asp-for="IsExistingPatient" class="form-check-input" role="switch" id="IsExistingPatient" />
             <label asp-for="IsExistingPatient" class="form-check-label"></label>
         </div>
-        <p class="form-hint">If yes, enter the patient number from a prescription or previous clinic record. If not, leave it blank.</p>
-        <div class="row g-3">
+        <p class="form-hint">Turn this on only when the pet already has a clinic patient number.</p>
+        <div class="row g-3" id="patientNumberFields">
             <div class="col-md-6">
                 <label asp-for="PatientNoInput" class="form-label"></label>
                 <div class="input-group patient-number-group">
@@ -77,13 +77,24 @@
         <div class="row g-3">
             <div class="col-md-3">
                 <label asp-for="AppointmentDate" class="form-label"></label>
-                <input asp-for="AppointmentDate" type="date" class="form-control" />
+                <input asp-for="AppointmentDate" type="date" class="form-control" min="@DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd")" />
                 <span asp-validation-for="AppointmentDate" class="text-danger"></span>
             </div>
             <div class="col-md-3">
                 <label asp-for="AppointmentTime" class="form-label"></label>
-                <select asp-for="AppointmentTime" asp-items="Model.TimeOptions" class="form-select">
+                <select id="AppointmentTime" name="AppointmentTime" class="form-select">
                     <option value="">Select time</option>
+                    @foreach (var option in Model.TimeOptions)
+                    {
+                        if (option.Selected)
+                        {
+                            <option value="@option.Value" selected>@option.Text</option>
+                        }
+                        else
+                        {
+                            <option value="@option.Value">@option.Text</option>
+                        }
+                    }
                 </select>
                 <span asp-validation-for="AppointmentTime" class="text-danger"></span>
             </div>
@@ -157,6 +168,8 @@
             const statusPatientIdentifier = document.getElementById('statusPatientIdentifier');
             const checkAppointmentStatusButton = document.getElementById('checkAppointmentStatusButton');
             const appointmentStatusResult = document.getElementById('appointmentStatusResult');
+            const appointmentDateInput = document.getElementById('AppointmentDate');
+            const appointmentTimeSelect = document.getElementById('AppointmentTime');
             const verifyUrl = '@Url.Action("VerifyPatientNumber", "Appointments")';
             const statusUrl = '@Url.Action("CheckAppointmentStatus", "Appointments")';
 
@@ -177,9 +190,14 @@
                 const isExistingPatient = existingPatientToggle.checked;
 
                 patientNumberInput.disabled = !isExistingPatient;
+                const patientNumberFields = document.getElementById('patientNumberFields');
+
                 verifyButton.disabled = !isExistingPatient;
                 patientNumberInput.classList.toggle('patient-number-disabled', !isExistingPatient);
                 patientNumberInput.placeholder = isExistingPatient ? 'Example: PET-0001' : 'Not needed for new patients';
+                if (patientNumberFields) {
+                    patientNumberFields.hidden = !isExistingPatient;
+                }
                 petDetailsSection.hidden = isExistingPatient;
 
                 petDetailFields.forEach((field) => {
@@ -198,7 +216,7 @@
 
                 if (!isExistingPatient) {
                     patientNumberInput.value = '';
-                    setVerificationMessage('New patient selected. Patient number is not required.', 'is-muted');
+                    setVerificationMessage('', 'is-muted');
                 } else {
                     setVerificationMessage('Enter and verify the patient number. Pet details will be taken from the clinic record.', 'is-muted');
                 }
@@ -211,11 +229,52 @@
                 }
             });
 
+            const syncTimeOptions = () => {
+                if (!appointmentDateInput || !appointmentTimeSelect) {
+                    return;
+                }
+
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+                const todayValue = `${yyyy}-${mm}-${dd}`;
+                const currentMinutes = today.getHours() * 60 + today.getMinutes();
+
+                let firstEnabledValue = '';
+                Array.from(appointmentTimeSelect.options).forEach((option) => {
+                    if (!option.value) {
+                        return;
+                    }
+
+                    const [hour, minute] = option.value.split(':').map(Number);
+                    const optionMinutes = hour * 60 + minute;
+                    const isPastTime = appointmentDateInput.value === todayValue && optionMinutes < currentMinutes;
+                    option.disabled = isPastTime;
+
+                    if (!isPastTime && !firstEnabledValue) {
+                        firstEnabledValue = option.value;
+                    }
+                });
+
+                const selectedOption = appointmentTimeSelect.selectedOptions[0];
+                if (selectedOption?.disabled && firstEnabledValue) {
+                    appointmentTimeSelect.value = firstEnabledValue;
+                }
+            };
+
+            appointmentDateInput?.addEventListener('change', syncTimeOptions);
+
             verifyButton.addEventListener('click', async () => {
                 const patientNo = patientNumberInput.value.trim();
 
                 if (!patientNo) {
                     setVerificationMessage('Enter a patient number first.', 'is-warning');
+                    window.PawsDialog?.alert({
+                        title: 'Patient Number Needed',
+                        message: 'Enter a patient number first.',
+                        type: 'warning'
+                    });
                     patientNumberInput.focus();
                     return;
                 }
@@ -229,17 +288,27 @@
                             'Accept': 'application/json'
                         }
                     });
+                    if (!response.ok) {
+                        throw new Error('Patient number check failed.');
+                    }
                     const result = await response.json();
 
                     setVerificationMessage(
                         result.message || 'Patient number check completed.',
                         result.found ? 'is-success' : 'is-warning');
+                    window.PawsDialog?.alert({
+                        title: result.found ? 'Patient Verified' : 'Patient Not Found',
+                        message: result.message || 'Patient number check completed.',
+                        type: result.found ? 'success' : 'warning'
+                    });
 
-                    if (result.found) {
-                        window.alert('Patient record verified. Pet details will be taken from the clinic record for this appointment.');
-                    }
                 } catch {
                     setVerificationMessage('Patient number could not be verified right now. You can still submit the request.', 'is-warning');
+                    window.PawsDialog?.alert({
+                        title: 'Verification Unavailable',
+                        message: 'Patient number could not be verified right now. Please try again or book as a new patient.',
+                        type: 'warning'
+                    });
                 } finally {
                     verifyButton.disabled = !existingPatientToggle.checked;
                 }
@@ -279,16 +348,6 @@
             };
 
             const renderStatusResult = (result) => {
-                const cancellationDetails = result.cancellationReason
-                    ? `<small>Cancellation Reason: ${escapeHtml(result.cancellationReason)}</small>`
-                    : '';
-                const cancelledBy = result.cancelledBy
-                    ? `<small>Cancelled By: ${escapeHtml(result.cancelledBy)}</small>`
-                    : '';
-                const cancelledAt = result.cancelledAt
-                    ? `<small>Cancelled At: ${escapeHtml(result.cancelledAt)}</small>`
-                    : '';
-
                 setStatusResult(`
                     <span>Appointment Code</span>
                     <strong>${escapeHtml(result.appointmentCode)}</strong>
@@ -296,9 +355,6 @@
                     <small>Schedule: ${escapeHtml(result.schedule)}</small>
                     <small>Service: ${escapeHtml(result.serviceType)}</small>
                     <small>${escapeHtml(result.message)}</small>
-                    ${cancellationDetails}
-                    ${cancelledBy}
-                    ${cancelledAt}
                 `, getStatusState(result));
             };
 
@@ -308,6 +364,11 @@
 
                 if (!appointmentCode || !patientIdentifier) {
                     setStatusResult('Enter both the appointment code and patient number or pet name.', 'is-warning');
+                    window.PawsDialog?.alert({
+                        title: 'Tracking Details Needed',
+                        message: 'Enter both the appointment code and patient number or pet name.',
+                        type: 'warning'
+                    });
                     return;
                 }
 
@@ -320,22 +381,48 @@
                             'Accept': 'application/json'
                         }
                     });
+                    if (!response.ok) {
+                        throw new Error('Appointment status check failed.');
+                    }
                     const result = await response.json();
 
                     if (!result.found) {
                         setStatusResult(result.message || 'No matching appointment was found.', 'is-warning');
+                        window.PawsDialog?.alert({
+                            title: 'Appointment Not Found',
+                            message: result.message || 'No matching appointment was found.',
+                            type: 'warning'
+                        });
                         return;
                     }
 
                     renderStatusResult(result);
+                    window.PawsDialog?.alert({
+                        title: `Status: ${result.status}`,
+                        message: result.message || 'Appointment status found.',
+                        type: getStatusState(result) === 'is-success' ? 'success' : 'warning'
+                    });
                 } catch {
                     setStatusResult('Appointment status could not be checked right now. Please try again later.', 'is-warning');
+                    window.PawsDialog?.alert({
+                        title: 'Status Check Unavailable',
+                        message: 'Appointment status could not be checked right now. Please try again later.',
+                        type: 'warning'
+                    });
                 } finally {
                     checkAppointmentStatusButton.disabled = false;
                 }
             });
 
             syncPatientNumberState();
+            syncTimeOptions();
+
+            if (new URLSearchParams(window.location.search).get('track') === 'true') {
+                const statusModal = document.getElementById('appointmentStatusModal');
+                if (statusModal && window.bootstrap) {
+                    window.bootstrap.Modal.getOrCreateInstance(statusModal).show();
+                }
+            }
         })();
     </script>
 }
